@@ -1,0 +1,26 @@
+{
+  "name": "bingo-monorepo",
+  "version": "1.0.0",
+  "description": "BinGo – Neighbourhood Waste & Recycling Coordinator (Monorepo Root)",
+  "private": true,
+  "scripts": {
+    "mobile": "npm run start --prefix mobile",
+    "server": "npm run dev --prefix server",
+    "install:all": "npm install --prefix mobile && npm install --prefix server",
+    "test:server": "npm test --prefix server",
+    "test:mobile": "npm test --prefix mobile"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/<YOUR_ORG>/bingo.git"
+  },
+  "keywords": [
+    "waste-management",
+    "recycling",
+    "react-native",
+    "express",
+    "mongodb",
+    "mobile"
+  ],
+  "license": "MIT"
+}
