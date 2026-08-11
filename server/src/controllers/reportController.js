@@ -1,54 +1,47 @@
 /**
  * BinGo – Waste Report Controller
+ * Member 2 – Illegal Dumping Reporting (US-M2-01 to US-M2-05)
  *
- * Handles:
- *   POST   /api/v1/reports              (resident – create report)
- *   GET    /api/v1/reports              (authenticated – all reports, filterable)
- *   GET    /api/v1/reports/my           (resident – own reports)
- *   GET    /api/v1/reports/:id          (authenticated – single report)
- *   PATCH  /api/v1/reports/:id/status   (waste_authority/admin – update status)
- *   DELETE /api/v1/reports/:id          (admin only)
- *
- * TODO (Member 2): Connect to reportService and image upload service.
+ * POST   /api/v1/reports              – resident: create report
+ * GET    /api/v1/reports              – admin/authority: all reports (paginated)
+ * GET    /api/v1/reports/my           – authenticated: own reports
+ * GET    /api/v1/reports/:id          – authenticated: single report (ownership enforced)
+ * PATCH  /api/v1/reports/:id/status   – admin/authority: update status
+ * DELETE /api/v1/reports/:id          – admin only
  */
 
 const WasteReport = require("../models/WasteReport");
 const { sendSuccess, sendPaginated } = require("../utils/apiResponse");
 const asyncHandler = require("../utils/asyncHandler");
 const AppError = require("../utils/AppError");
-const { HTTP_STATUS, PAGINATION } = require("../config/constants");
+const { HTTP_STATUS, PAGINATION, REPORT_STATUSES } = require("../config/constants");
 
-/**
- * POST /api/v1/reports
- * Create a new waste report.
- */
+// ── POST /api/v1/reports ─────────────────────────────────────────────────
 const createReport = asyncHandler(async (req, res) => {
   const { description, wasteType, latitude, longitude, address, imageUrl } = req.body;
 
   const report = await WasteReport.create({
     reporterId: req.user._id,
-    description,
+    description: description.trim(),
     wasteType,
     location: {
       type: "Point",
       coordinates: [parseFloat(longitude), parseFloat(latitude)],
     },
-    address: address || null,
+    address: address ? address.trim() : null,
     imageUrl: imageUrl || null,
+    status: REPORT_STATUSES.PENDING,
   });
 
-  sendSuccess(res, HTTP_STATUS.CREATED, "Report created successfully.", report);
+  sendSuccess(res, HTTP_STATUS.CREATED, "Report submitted successfully.", report);
 });
 
-/**
- * GET /api/v1/reports
- * Retrieve all reports with optional status filter and pagination.
- * Admin and waste_authority can see all. Residents see only their own via /my.
- */
+// ── GET /api/v1/reports ──────────────────────────────────────────────────
+// Admin / waste_authority only – enforced in route layer
 const getAllReports = asyncHandler(async (req, res) => {
-  const page = parseInt(req.query.page) || PAGINATION.DEFAULT_PAGE;
+  const page = Math.max(1, parseInt(req.query.page) || PAGINATION.DEFAULT_PAGE);
   const limit = Math.min(
-    parseInt(req.query.limit) || PAGINATION.DEFAULT_LIMIT,
+    Math.max(1, parseInt(req.query.limit) || PAGINATION.DEFAULT_LIMIT),
     PAGINATION.MAX_LIMIT
   );
   const skip = (page - 1) * limit;
@@ -74,10 +67,8 @@ const getAllReports = asyncHandler(async (req, res) => {
   });
 });
 
-/**
- * GET /api/v1/reports/my
- * Retrieve the authenticated user's own reports.
- */
+// ── GET /api/v1/reports/my ───────────────────────────────────────────────
+// Returns only the authenticated user's own reports (US-M2-05)
 const getMyReports = asyncHandler(async (req, res) => {
   const reports = await WasteReport.find({ reporterId: req.user._id })
     .sort({ createdAt: -1 });
@@ -85,10 +76,8 @@ const getMyReports = asyncHandler(async (req, res) => {
   sendSuccess(res, HTTP_STATUS.OK, "Your reports retrieved.", reports);
 });
 
-/**
- * GET /api/v1/reports/:id
- * Retrieve a single report by ID.
- */
+// ── GET /api/v1/reports/:id ──────────────────────────────────────────────
+// Ownership enforced: residents can only view their own reports
 const getReportById = asyncHandler(async (req, res) => {
   const report = await WasteReport.findById(req.params.id)
     .populate("reporterId", "name email")
@@ -98,14 +87,22 @@ const getReportById = asyncHandler(async (req, res) => {
     throw new AppError("Report not found.", HTTP_STATUS.NOT_FOUND);
   }
 
+  // Residents may only view reports they submitted
+  const isOwner = report.reporterId._id.toString() === req.user._id.toString();
+  const isPrivileged = ["admin", "waste_authority"].includes(req.user.role);
+
+  if (!isOwner && !isPrivileged) {
+    throw new AppError(
+      "Access denied. You can only view your own reports.",
+      HTTP_STATUS.FORBIDDEN
+    );
+  }
+
   sendSuccess(res, HTTP_STATUS.OK, "Report retrieved.", report);
 });
 
-/**
- * PATCH /api/v1/reports/:id/status
- * Update a report's status and optional review note.
- * Waste authority and admin only.
- */
+// ── PATCH /api/v1/reports/:id/status ────────────────────────────────────
+// Waste authority / admin only – enforced in route layer
 const updateReportStatus = asyncHandler(async (req, res) => {
   const { status, reviewNote } = req.body;
 
@@ -113,7 +110,7 @@ const updateReportStatus = asyncHandler(async (req, res) => {
     req.params.id,
     {
       status,
-      reviewNote: reviewNote || null,
+      reviewNote: reviewNote ? reviewNote.trim() : null,
       reviewedBy: req.user._id,
     },
     { new: true, runValidators: true }
@@ -126,10 +123,8 @@ const updateReportStatus = asyncHandler(async (req, res) => {
   sendSuccess(res, HTTP_STATUS.OK, "Report status updated.", report);
 });
 
-/**
- * DELETE /api/v1/reports/:id
- * Delete a report – admin only.
- */
+// ── DELETE /api/v1/reports/:id ───────────────────────────────────────────
+// Admin only – enforced in route layer
 const deleteReport = asyncHandler(async (req, res) => {
   const report = await WasteReport.findByIdAndDelete(req.params.id);
 

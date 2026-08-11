@@ -1,11 +1,14 @@
 /**
  * BinGo – Waste Report Validators
+ * Member 2 – Illegal Dumping Reporting
  *
- * Validates incoming waste report request bodies.
+ * Updated to reflect extended waste type list (US-M2-03).
  */
 
-const { body, query } = require("express-validator");
+const { body } = require("express-validator");
 const { WASTE_TYPES } = require("../config/constants");
+
+const VALID_WASTE_TYPES = Object.values(WASTE_TYPES);
 
 const createReportValidation = [
   body("description")
@@ -19,8 +22,8 @@ const createReportValidation = [
     .trim()
     .notEmpty()
     .withMessage("Waste type is required")
-    .isIn(Object.values(WASTE_TYPES))
-    .withMessage(`Waste type must be one of: ${Object.values(WASTE_TYPES).join(", ")}`),
+    .isIn(VALID_WASTE_TYPES)
+    .withMessage(`Waste type must be one of: ${VALID_WASTE_TYPES.join(", ")}`),
 
   body("latitude")
     .notEmpty()
@@ -39,6 +42,11 @@ const createReportValidation = [
     .trim()
     .isLength({ max: 500 })
     .withMessage("Address cannot exceed 500 characters"),
+
+  body("imageUrl")
+    .optional({ nullable: true })
+    .isString()
+    .withMessage("imageUrl must be a string"),
 ];
 
 const updateReportStatusValidation = [
