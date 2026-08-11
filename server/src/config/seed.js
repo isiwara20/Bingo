@@ -19,7 +19,7 @@ const WasteReport = require("../models/WasteReport");
 const SEED_USERS = [
   {
     name: "Dev Resident",
-    email: "resident@dev.bingo",
+    email: "resident@devbingo.com",
     passwordHash: "DevResident1!",
     role: "resident",
     phone: "+1-555-0001",
@@ -27,7 +27,7 @@ const SEED_USERS = [
   },
   {
     name: "Dev Community Leader",
-    email: "leader@dev.bingo",
+    email: "leader@devbingo.com",
     passwordHash: "DevLeader1!",
     role: "community_leader",
     phone: "+1-555-0002",
@@ -35,7 +35,7 @@ const SEED_USERS = [
   },
   {
     name: "Dev Waste Authority",
-    email: "authority@dev.bingo",
+    email: "authority@devbingo.com",
     passwordHash: "DevAuthority1!",
     role: "waste_authority",
     phone: "+1-555-0003",
@@ -43,7 +43,7 @@ const SEED_USERS = [
   },
   {
     name: "Dev Admin",
-    email: "admin@dev.bingo",
+    email: "admin@devbingo.com",
     passwordHash: "DevAdmin1!",
     role: "admin",
     phone: "+1-555-0004",
@@ -117,7 +117,7 @@ const seed = async () => {
     console.log("Connected to MongoDB Atlas for seeding.");
 
     // Clear existing seed data
-    await User.deleteMany({ email: { $regex: "@dev.bingo$" } });
+    await User.deleteMany({ email: { $regex: "@devbingo\\.com$" } });
     await WasteLocation.deleteMany({ description: /MOCK DATA/ });
     await WasteReport.deleteMany({ description: /SEED REPORT/ });
 
