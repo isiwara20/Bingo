@@ -3,23 +3,39 @@
  *
  * US-09: As a resident, I want to access important actions from the dashboard.
  *
- * Modular layout – each section can be extended independently by team members.
- * TODO: Connect upcoming collection from scheduleService (Member 3)
- * TODO: Connect recent reports from reportService (Member 2)
- * TODO: Connect reward points from AuthContext/rewardService (Member 4)
+ * Member 2: Connected "Your Recent Reports" section to reportService.
+ * TODO (Member 3): Replace schedule placeholder with CollectionScheduleWidget.
+ * TODO (Member 4): Replace reward points with live rewardService data.
  */
 
-import React from "react";
+import React, { useState, useEffect, useCallback } from "react";
 import {
   View,
   Text,
   StyleSheet,
   ScrollView,
   TouchableOpacity,
+  ActivityIndicator,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../context/AuthContext";
+import { getMyReports } from "../services/reportService";
 import COLORS from "../constants/colors";
+
+const STATUS_COLORS = {
+  pending:      COLORS.STATUS_PENDING,
+  under_review: COLORS.STATUS_UNDER_REVIEW,
+  cleaned:      COLORS.STATUS_CLEANED,
+  rejected:     COLORS.STATUS_REJECTED,
+};
+const STATUS_EMOJIS = {
+  pending: "⏳", under_review: "🔍", cleaned: "✅", rejected: "❌",
+};
+const WASTE_EMOJIS = {
+  general:"🗑️", plastic:"🧴", glass:"🍶", paper:"📄",
+  metal:"🔩", electronic:"📱", construction:"🧱",
+  organic:"🌿", hazardous:"☢️", mixed:"♻️", other:"❓",
+};
 
 // ── Quick Action data ──────────────────────────────────────────────────────
 const QUICK_ACTIONS = [
@@ -98,9 +114,25 @@ const PlaceholderCard = ({ message }) => (
 const HomeScreen = ({ navigation }) => {
   const { user } = useAuth();
 
-  const navigateTo = (tab) => {
-    navigation.navigate(tab);
-  };
+  // Member 2: live recent reports
+  const [recentReports, setRecentReports] = useState([]);
+  const [reportsLoading, setReportsLoading] = useState(false);
+
+  const loadRecentReports = useCallback(async () => {
+    setReportsLoading(true);
+    try {
+      const data = await getMyReports();
+      setRecentReports(data.slice(0, 3)); // show last 3
+    } catch {
+      // Fail silently on dashboard – user can visit Reports tab for full list
+    } finally {
+      setReportsLoading(false);
+    }
+  }, []);
+
+  useEffect(() => { loadRecentReports(); }, [loadRecentReports]);
+
+  const navigateTo = (tab) => navigation.navigate(tab);
 
   return (
     <SafeAreaView style={styles.container}>
@@ -140,10 +172,61 @@ const HomeScreen = ({ navigation }) => {
         {/* TODO (Member 3): Replace with CollectionScheduleWidget */}
         <PlaceholderCard message="📅 Collection schedule will appear here – Sprint 2" />
 
-        {/* Recent Reports */}
+        {/* Recent Reports – Member 2 */}
         <SectionHeader title="Your Recent Reports" />
-        {/* TODO (Member 2): Replace with RecentReportsWidget */}
-        <PlaceholderCard message="📋 Your recent reports will appear here" />
+        {reportsLoading ? (
+          <View style={styles.reportsLoading}>
+            <ActivityIndicator size="small" color={COLORS.PRIMARY} />
+          </View>
+        ) : recentReports.length === 0 ? (
+          <TouchableOpacity
+            style={styles.placeholderCard}
+            onPress={() => navigateTo("Report")}
+            accessibilityRole="button"
+            accessibilityLabel="Submit your first report"
+          >
+            <Text style={styles.placeholderText}>
+              📋 No reports yet – tap to report illegal dumping
+            </Text>
+          </TouchableOpacity>
+        ) : (
+          <View style={styles.recentReportsWrap}>
+            {recentReports.map((r) => {
+              const statusColor = STATUS_COLORS[r.status] || COLORS.TEXT_SECONDARY;
+              const statusEmoji = STATUS_EMOJIS[r.status] || "📋";
+              const wasteEmoji  = WASTE_EMOJIS[r.wasteType] || "🗑️";
+              return (
+                <TouchableOpacity
+                  key={r._id}
+                  style={[styles.miniReportCard, { borderLeftColor: statusColor }]}
+                  onPress={() => navigation.navigate("Report", {
+                    screen: "ReportDetails",
+                    params: { reportId: r._id },
+                  })}
+                  accessibilityRole="button"
+                  accessibilityLabel={`Report ${r.wasteType}, status ${r.status}`}
+                >
+                  <Text style={styles.miniReportEmoji}>{wasteEmoji}</Text>
+                  <View style={styles.miniReportBody}>
+                    <Text style={styles.miniReportType}>
+                      {r.wasteType?.charAt(0).toUpperCase() + r.wasteType?.slice(1)} Waste
+                    </Text>
+                    <Text style={styles.miniReportDate}>
+                      {new Date(r.createdAt).toLocaleDateString()}
+                    </Text>
+                  </View>
+                  <Text style={styles.miniReportStatus}>{statusEmoji}</Text>
+                </TouchableOpacity>
+              );
+            })}
+            <TouchableOpacity
+              onPress={() => navigateTo("Report")}
+              accessibilityRole="button"
+            >
+              <Text style={styles.viewAllLink}>View all reports →</Text>
+            </TouchableOpacity>
+          </View>
+        )}
 
         {/* Reward Points */}
         <SectionHeader title="Reward Points" />
@@ -227,6 +310,39 @@ const styles = StyleSheet.create({
   rewardPoints: { fontSize: 32, fontWeight: "bold", color: COLORS.TEXT_INVERSE },
   rewardLabel: { fontSize: 13, color: COLORS.TEXT_INVERSE, marginTop: 4 },
   rewardLink: { color: COLORS.TEXT_INVERSE, marginTop: 12, fontWeight: "600" },
+
+  // Member 2: recent reports styles
+  reportsLoading: {
+    backgroundColor: COLORS.SURFACE,
+    borderRadius: 12,
+    height: 60,
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 24,
+  },
+  recentReportsWrap: { marginBottom: 24, gap: 8 },
+  miniReportCard: {
+    backgroundColor: COLORS.SURFACE,
+    borderRadius: 10,
+    padding: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 10,
+    borderLeftWidth: 4,
+    elevation: 1,
+  },
+  miniReportEmoji: { fontSize: 22 },
+  miniReportBody: { flex: 1 },
+  miniReportType: { fontSize: 13, fontWeight: "600", color: COLORS.TEXT_PRIMARY },
+  miniReportDate: { fontSize: 11, color: COLORS.TEXT_DISABLED, marginTop: 2 },
+  miniReportStatus: { fontSize: 20 },
+  viewAllLink: {
+    color: COLORS.PRIMARY,
+    fontSize: 13,
+    fontWeight: "600",
+    textAlign: "right",
+    marginTop: 4,
+  },
 });
 
 export default HomeScreen;

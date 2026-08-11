@@ -21,6 +21,7 @@ import COLORS from "../constants/colors";
 // Screens
 import HomeScreen from "../screens/HomeScreen";
 import ReportWasteScreen from "../screens/ReportWasteScreen";
+import ReportReviewScreen from "../screens/ReportReviewScreen";
 import ReportDetailsScreen from "../screens/ReportDetailsScreen";
 import ReportStatusScreen from "../screens/ReportStatusScreen";
 import WasteMapScreen from "../screens/WasteMapScreen";
@@ -59,8 +60,17 @@ const HomeStack = () => (
 const ReportStack = () => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>
     <Stack.Screen name="ReportWaste" component={ReportWasteScreen} />
+    <Stack.Screen name="ReportReview" component={ReportReviewScreen} />
     <Stack.Screen name="ReportDetails" component={ReportDetailsScreen} />
     <Stack.Screen name="ReportStatus" component={ReportStatusScreen} />
+  </Stack.Navigator>
+);
+
+// ── Map Stack ──────────────────────────────────────────────────────────────
+const MapStack = () => (
+  <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Screen name="WasteMap" component={WasteMapScreen} />
+    <Stack.Screen name="ReportDetails" component={ReportDetailsScreen} />
   </Stack.Navigator>
 );
 
@@ -96,7 +106,7 @@ const MainNavigator = () => {
     >
       <Tab.Screen name="Home" component={HomeStack} options={{ tabBarLabel: "Home" }} />
       <Tab.Screen name="Report" component={ReportStack} options={{ tabBarLabel: "Report" }} />
-      <Tab.Screen name="Map" component={WasteMapScreen} options={{ tabBarLabel: "Map" }} />
+      <Tab.Screen name="Map" component={MapStack} options={{ tabBarLabel: "Map" }} />
       <Tab.Screen name="Schedule" component={CollectionScheduleScreen} options={{ tabBarLabel: "Schedule" }} />
       <Tab.Screen name="Community" component={CommunityScreen} options={{ tabBarLabel: "Community" }} />
       <Tab.Screen name="Recycling" component={RecyclingGuideScreen} options={{ tabBarLabel: "Recycle" }} />

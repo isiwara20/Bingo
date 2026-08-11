@@ -14,13 +14,17 @@ const ROLES = Object.freeze({
 });
 
 // ── Waste Types ────────────────────────────────────────────────────────────
+// Extended for Member 2 – Illegal Dumping Reporting (US-M2-03)
 const WASTE_TYPES = Object.freeze({
+  GENERAL: "general",
   PLASTIC: "plastic",
   GLASS: "glass",
   PAPER: "paper",
   METAL: "metal",
   ELECTRONIC: "electronic",
+  CONSTRUCTION: "construction",
   ORGANIC: "organic",
+  HAZARDOUS: "hazardous",
   MIXED: "mixed",
   OTHER: "other",
 });

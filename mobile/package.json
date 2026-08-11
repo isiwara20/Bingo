@@ -42,9 +42,6 @@
     "metro-react-native-babel-preset": "0.77.0"
   },
   "jest": {
-    "preset": "react-native",
-    "transformIgnorePatterns": [
-      "node_modules/(?!(react-native|@react-native|@react-navigation)/)"
-    ]
+    "preset": "react-native"
   }
 }
