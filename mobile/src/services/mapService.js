@@ -1,16 +1,18 @@
 /**
- * BinGo – Map Service (Mobile)
+ * BinGo – Map Service
+ * Member 2 – Interactive Waste Map (US-M2-06, US-M2-07)
  *
- * Wraps map-related API calls.
- * TODO (Member 2): Expand with filtering and clustering in Sprint 2.
+ * All map API calls go through this module.
  */
 
 import api from "../api/apiClient";
 
 /**
- * Fetch waste report locations for map display.
+ * Fetch active illegal dumping report locations for map markers.
+ * Returns only pending + under_review reports.
+ * Authenticated endpoint.
  *
- * @returns {Array} report location objects
+ * @returns {Array} report location objects with location, wasteType, status
  */
 export const getReportLocations = async () => {
   const response = await api.get("/map/reports");
@@ -18,10 +20,11 @@ export const getReportLocations = async () => {
 };
 
 /**
- * Fetch fixed waste locations (recycling centres, collection points).
+ * Fetch waste facility locations (recycling centres, collection points).
+ * Public endpoint.
  *
- * @param {string} [type] - Optional type filter
- * @returns {Array} waste location objects
+ * @param {string|null} type - Optional: 'recycling_centre' | 'collection_point' | 'bin'
+ * @returns {Array} WasteLocation objects
  */
 export const getWasteLocations = async (type = null) => {
   const params = type ? { type } : {};
@@ -30,12 +33,12 @@ export const getWasteLocations = async (type = null) => {
 };
 
 /**
- * Fetch locations near a coordinate.
+ * Fetch waste facility locations within a radius.
  *
- * @param {number} lat
- * @param {number} lng
- * @param {number} [radius=5] - Radius in km
- * @returns {Array} nearby location objects
+ * @param {number} lat - Latitude
+ * @param {number} lng - Longitude
+ * @param {number} radius - Radius in km (default 5)
+ * @returns {Array} nearby WasteLocation objects
  */
 export const getNearbyLocations = async (lat, lng, radius = 5) => {
   const response = await api.get("/map/nearby", {
