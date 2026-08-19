@@ -2,64 +2,52 @@
  * BinGo – Report Waste Screen
  * Member 2 – US-M2-01, US-M2-02, US-M2-03, US-M2-04
  *
- * Step 1 of the reporting flow:
- *   Select waste category → Add description → Capture location → Add photo
- *   → Navigate to ReportReviewScreen for preview before submitting
- *
- * NOTE on image storage:
- *   Images are currently stored as local device URIs only.
- *   TODO Sprint 2: Integrate Cloudinary/S3 upload before sending to backend.
+ * Redesigned to match high-fidelity wireframes:
+ *   - Dark green header bar
+ *   - 4-step progress indicator (green circles)
+ *   - 2×2 waste category grid with icon backgrounds + SELECT radio
+ *   - GPS location button
+ *   - Image picker
+ *   - Amber "Continue >" CTA button
  */
 
 import React, { useState } from "react";
 import {
-  View,
-  Text,
-  TextInput,
-  TouchableOpacity,
-  StyleSheet,
-  ScrollView,
-  Image,
-  ActivityIndicator,
-  Alert,
-  Platform,
+  View, Text, TextInput, TouchableOpacity, StyleSheet,
+  ScrollView, Image, ActivityIndicator, Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { getCurrentLocation } from "../services/locationService";
 import { takePhoto, pickImageFromLibrary } from "../services/imageService";
 import COLORS from "../constants/colors";
 
-// ── Waste categories (US-M2-03) ───────────────────────────────────────────
+// ── Waste categories matching wireframe style ─────────────────────────────
 const WASTE_CATEGORIES = [
-  { value: "general",      label: "General",      emoji: "🗑️" },
-  { value: "plastic",      label: "Plastic",      emoji: "🧴" },
-  { value: "glass",        label: "Glass",        emoji: "🍶" },
-  { value: "paper",        label: "Paper",        emoji: "📄" },
-  { value: "metal",        label: "Metal",        emoji: "🔩" },
-  { value: "electronic",   label: "Electronic",   emoji: "📱" },
-  { value: "construction", label: "Construction", emoji: "🧱" },
-  { value: "organic",      label: "Organic",      emoji: "🌿" },
-  { value: "hazardous",    label: "Hazardous",    emoji: "☢️" },
-  { value: "mixed",        label: "Mixed",        emoji: "♻️" },
-  { value: "other",        label: "Other",        emoji: "❓" },
+  { value: "plastic",      label: "Plastic Waste",       emoji: "🧴", desc: "Bottles, bags, packaging" },
+  { value: "organic",      label: "Organic Waste",       emoji: "🌿", desc: "Food, garden, compostable" },
+  { value: "electronic",   label: "Electronic Waste",    emoji: "📱", desc: "Devices, cables, batteries" },
+  { value: "construction", label: "Construction Waste",  emoji: "🧱", desc: "Rubble, timber, metals" },
+  { value: "general",      label: "General Waste",       emoji: "🗑️", desc: "Mixed or unclassified waste" },
+  { value: "glass",        label: "Glass",               emoji: "🍶", desc: "Bottles, jars, mirrors" },
+  { value: "metal",        label: "Metal",               emoji: "🔩", desc: "Cans, pipes, scrap metal" },
+  { value: "hazardous",    label: "Hazardous",           emoji: "☢️", desc: "Chemicals, paint, batteries" },
+  { value: "other",        label: "Other",               emoji: "❓", desc: "Doesn't fit above categories" },
 ];
 
 const MAX_DESCRIPTION = 1000;
 const MIN_DESCRIPTION = 10;
 
 const ReportWasteScreen = ({ navigation }) => {
-  const [wasteType, setWasteType]           = useState(null);
-  const [description, setDescription]       = useState("");
-  const [imageUri, setImageUri]             = useState(null);
-  const [location, setLocation]             = useState(null);
+  const [wasteType, setWasteType]             = useState(null);
+  const [description, setDescription]         = useState("");
+  const [imageUri, setImageUri]               = useState(null);
+  const [location, setLocation]               = useState(null);
   const [locationLoading, setLocationLoading] = useState(false);
-  const [errors, setErrors]                 = useState({});
+  const [errors, setErrors]                   = useState({});
 
-  // ── Clear individual field error on change ───────────────────────────────
-  const clearError = (field) =>
-    setErrors((prev) => ({ ...prev, [field]: null }));
+  const clearError = (field) => setErrors((prev) => ({ ...prev, [field]: null }));
 
-  // ── GPS location (US-M2-04) ──────────────────────────────────────────────
+  // ── GPS ───────────────────────────────────────────────────────────────
   const handleGetLocation = async () => {
     setLocationLoading(true);
     clearError("location");
@@ -73,33 +61,21 @@ const ReportWasteScreen = ({ navigation }) => {
     }
   };
 
-  // ── Image selection (US-M2-02) ───────────────────────────────────────────
+  // ── Image ─────────────────────────────────────────────────────────────
   const handleImageOption = () => {
     Alert.alert("Add Photo Evidence", "Choose an option", [
       {
         text: "Take Photo",
         onPress: async () => {
-          try {
-            const img = await takePhoto();
-            setImageUri(img.uri);
-          } catch (err) {
-            if (err.code !== "CANCELLED") {
-              Alert.alert("Camera Error", err.message);
-            }
-          }
+          try { const img = await takePhoto(); setImageUri(img.uri); }
+          catch (err) { if (err.code !== "CANCELLED") Alert.alert("Camera Error", err.message); }
         },
       },
       {
         text: "Choose from Library",
         onPress: async () => {
-          try {
-            const img = await pickImageFromLibrary();
-            setImageUri(img.uri);
-          } catch (err) {
-            if (err.code !== "CANCELLED") {
-              Alert.alert("Gallery Error", err.message);
-            }
-          }
+          try { const img = await pickImageFromLibrary(); setImageUri(img.uri); }
+          catch (err) { if (err.code !== "CANCELLED") Alert.alert("Gallery Error", err.message); }
         },
       },
       { text: "Cancel", style: "cancel" },
@@ -113,28 +89,21 @@ const ReportWasteScreen = ({ navigation }) => {
     ]);
   };
 
-  // ── Form validation ──────────────────────────────────────────────────────
+  // ── Validation ────────────────────────────────────────────────────────
   const validate = () => {
     const newErrors = {};
-    if (!wasteType) {
-      newErrors.wasteType = "Please select a waste category.";
-    }
+    if (!wasteType) newErrors.wasteType = "Please select a waste category.";
     const trimmed = description.trim();
     if (!trimmed) {
       newErrors.description = "Description is required.";
     } else if (trimmed.length < MIN_DESCRIPTION) {
-      newErrors.description = `Description must be at least ${MIN_DESCRIPTION} characters.`;
-    } else if (trimmed.length > MAX_DESCRIPTION) {
-      newErrors.description = `Description cannot exceed ${MAX_DESCRIPTION} characters.`;
+      newErrors.description = `At least ${MIN_DESCRIPTION} characters required.`;
     }
-    if (!location) {
-      newErrors.location = "Location is required. Tap the button to get your GPS coordinates.";
-    }
+    if (!location) newErrors.location = "Location is required. Tap to detect GPS.";
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
 
-  // ── Proceed to review screen (US-M2 review step) ─────────────────────────
   const handleProceedToReview = () => {
     if (!validate()) return;
     navigation.navigate("ReportReview", {
@@ -147,69 +116,80 @@ const ReportWasteScreen = ({ navigation }) => {
   };
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={styles.container} edges={["top"]}>
+
+      {/* ── Dark green header bar ──────────────────────────────────────── */}
+      <View style={styles.header}>
+        <View style={styles.headerTop}>
+          <TouchableOpacity
+            onPress={() => navigation.goBack()}
+            hitSlop={{ top: 12, bottom: 12, left: 12, right: 12 }}
+            accessibilityRole="button"
+            accessibilityLabel="Go back"
+          >
+            <Text style={styles.backText}>←</Text>
+          </TouchableOpacity>
+          <View style={{ flex: 1, marginLeft: 10 }}>
+            <Text style={styles.stepLabel}>STEP 1 OF 3 · DETAILS</Text>
+            <Text style={styles.title}>Report Illegal Dumping</Text>
+          </View>
+        </View>
+      </View>
+
       <ScrollView
         contentContainerStyle={styles.scroll}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
-        {/* ── Header ──────────────────────────────────────────────────── */}
-        <View style={styles.header}>
-          <TouchableOpacity
-            onPress={() => navigation.goBack()}
-            accessibilityRole="button"
-            accessibilityLabel="Go back"
-            hitSlop={{ top: 10, bottom: 10, left: 10, right: 10 }}
-          >
-            <Text style={styles.backText}>← Back</Text>
-          </TouchableOpacity>
-          <Text style={styles.title}>Report Illegal Dumping</Text>
-          <Text style={styles.subtitle}>
-            Help your neighbourhood by reporting waste problems
-          </Text>
-        </View>
-
-        {/* ── Step indicator ──────────────────────────────────────────── */}
+        {/* ── Progress steps ──────────────────────────────────────────── */}
         <View style={styles.stepRow}>
-          <StepDot n={1} label="Details" active />
+          <StepDot n={1} label="DETAILS" active />
           <View style={styles.stepLine} />
-          <StepDot n={2} label="Review" />
+          <StepDot n={2} label="REVIEW" />
           <View style={styles.stepLine} />
-          <StepDot n={3} label="Done" />
+          <StepDot n={3} label="DONE" />
         </View>
 
-        {/* ── Waste category (US-M2-03) ────────────────────────────────── */}
-        <SectionLabel text="Waste Category *" />
+        {/* ── Waste category grid ────────────────────────────────────── */}
+        <Text style={styles.sectionHint}>
+          Choose the category that best describes the dumped waste.
+        </Text>
         <View style={styles.categoryGrid}>
-          {WASTE_CATEGORIES.map((cat) => (
-            <TouchableOpacity
-              key={cat.value}
-              style={[
-                styles.categoryBtn,
-                wasteType === cat.value && styles.categoryBtnSelected,
-              ]}
-              onPress={() => { setWasteType(cat.value); clearError("wasteType"); }}
-              accessibilityRole="button"
-              accessibilityLabel={`Waste category: ${cat.label}`}
-              accessibilityState={{ selected: wasteType === cat.value }}
-            >
-              <Text style={styles.categoryEmoji}>{cat.emoji}</Text>
-              <Text style={[
-                styles.categoryLabel,
-                wasteType === cat.value && styles.categoryLabelSelected,
-              ]}>
-                {cat.label}
-              </Text>
-            </TouchableOpacity>
-          ))}
+          {WASTE_CATEGORIES.map((cat) => {
+            const selected = wasteType === cat.value;
+            return (
+              <TouchableOpacity
+                key={cat.value}
+                style={[styles.categoryBtn, selected && styles.categoryBtnSelected]}
+                onPress={() => { setWasteType(cat.value); clearError("wasteType"); }}
+                accessibilityRole="button"
+                accessibilityLabel={`${cat.label}: ${cat.desc}`}
+                accessibilityState={{ selected }}
+              >
+                <View style={[styles.categoryIconWrap, selected && styles.categoryIconWrapSelected]}>
+                  <Text style={styles.categoryEmoji}>{cat.emoji}</Text>
+                </View>
+                <Text style={[styles.categoryLabel, selected && styles.categoryLabelSelected]}>
+                  {cat.label}
+                </Text>
+                <Text style={styles.categoryDesc}>{cat.desc}</Text>
+                <View style={styles.categorySelectRow}>
+                  <View style={[styles.categoryRadio, selected && styles.categoryRadioSelected]} />
+                  <Text style={[styles.categorySelectText, selected && { color: COLORS.PRIMARY }]}>
+                    SELECT
+                  </Text>
+                </View>
+              </TouchableOpacity>
+            );
+          })}
         </View>
         <FieldError msg={errors.wasteType} />
 
-        {/* ── Description ──────────────────────────────────────────────── */}
+        {/* ── Description ─────────────────────────────────────────────── */}
         <SectionLabel text="Description *" />
         <TextInput
           style={[styles.textArea, errors.description && styles.inputError]}
-          placeholder={`Describe the waste – type, quantity, any hazard...\n(minimum ${MIN_DESCRIPTION} characters)`}
+          placeholder={`Describe the waste – type, quantity, any hazard...\n(min ${MIN_DESCRIPTION} characters)`}
           placeholderTextColor={COLORS.TEXT_DISABLED}
           value={description}
           onChangeText={(t) => { setDescription(t); clearError("description"); }}
@@ -221,49 +201,59 @@ const ReportWasteScreen = ({ navigation }) => {
         />
         <View style={styles.charRow}>
           <FieldError msg={errors.description} />
-          <Text style={[
-            styles.charCount,
-            description.length > MAX_DESCRIPTION * 0.9 && styles.charCountWarn,
-          ]}>
+          <Text style={[styles.charCount, description.length > MAX_DESCRIPTION * 0.9 && styles.charCountWarn]}>
             {description.length}/{MAX_DESCRIPTION}
           </Text>
         </View>
 
-        {/* ── GPS location (US-M2-04) ──────────────────────────────────── */}
+        {/* ── GPS location ────────────────────────────────────────────── */}
         <SectionLabel text="Location *" />
+
+        {/* Use Current Location button */}
         <TouchableOpacity
-          style={[
-            styles.locationBtn,
-            location   && styles.locationBtnSet,
-            errors.location && styles.locationBtnError,
-          ]}
+          style={[styles.locationOptionBtn, location && styles.locationOptionBtnActive]}
           onPress={handleGetLocation}
           disabled={locationLoading}
           accessibilityRole="button"
-          accessibilityLabel={location ? "Location captured. Tap to update." : "Tap to get current GPS location"}
+          accessibilityLabel="Use current GPS location"
         >
-          {locationLoading ? (
-            <ActivityIndicator color={COLORS.PRIMARY} />
-          ) : location ? (
-            <View style={styles.locationRow}>
-              <Text style={styles.locationIcon}>✅</Text>
-              <View>
-                <Text style={styles.locationCoords}>
-                  {location.latitude.toFixed(5)}, {location.longitude.toFixed(5)}
-                </Text>
-                <Text style={styles.locationHint}>Tap to update location</Text>
-              </View>
-            </View>
-          ) : (
-            <View style={styles.locationRow}>
-              <Text style={styles.locationIcon}>📍</Text>
-              <Text style={styles.locationPlaceholder}>Tap to get my current location</Text>
-            </View>
-          )}
+          <View style={styles.locationOptionIcon}>
+            <Text style={{ fontSize: 18 }}>📡</Text>
+          </View>
+          <View style={{ flex: 1 }}>
+            <Text style={styles.locationOptionTitle}>Use Current Location</Text>
+            <Text style={styles.locationOptionSub}>
+              {locationLoading
+                ? "Detecting your position..."
+                : location
+                  ? `${location.latitude.toFixed(5)}° N, ${location.longitude.toFixed(5)}° E`
+                  : "Automatically detect via GPS"}
+            </Text>
+          </View>
+          {locationLoading
+            ? <ActivityIndicator size="small" color={COLORS.PRIMARY} />
+            : location
+              ? <Text style={{ fontSize: 18 }}>✅</Text>
+              : <Text style={styles.locationArrow}>›</Text>
+          }
         </TouchableOpacity>
+
         <FieldError msg={errors.location} />
 
-        {/* ── Photo (US-M2-02) ─────────────────────────────────────────── */}
+        {/* GPS coordinates detail card */}
+        {location && (
+          <View style={styles.coordsCard}>
+            <Text style={styles.coordsLabel}>GPS COORDINATES</Text>
+            <Text style={styles.coordsValue}>
+              {location.latitude.toFixed(4)}° N, {location.longitude.toFixed(4)}° E
+            </Text>
+            <TouchableOpacity onPress={handleGetLocation}>
+              <Text style={styles.coordsRetry}>↻ Retake location</Text>
+            </TouchableOpacity>
+          </View>
+        )}
+
+        {/* ── Photo evidence ──────────────────────────────────────────── */}
         <SectionLabel text="Photo Evidence (optional)" />
         {imageUri ? (
           <View style={styles.imagePreviewContainer}>
@@ -279,7 +269,7 @@ const ReportWasteScreen = ({ navigation }) => {
                 accessibilityRole="button"
                 accessibilityLabel="Replace photo"
               >
-                <Text style={styles.imageActionText}>Replace</Text>
+                <Text style={styles.imageActionText}>Replace Photo</Text>
               </TouchableOpacity>
               <TouchableOpacity
                 style={[styles.imageActionBtn, styles.imageActionRemove]}
@@ -287,9 +277,7 @@ const ReportWasteScreen = ({ navigation }) => {
                 accessibilityRole="button"
                 accessibilityLabel="Remove photo"
               >
-                <Text style={[styles.imageActionText, styles.imageActionRemoveText]}>
-                  Remove
-                </Text>
+                <Text style={[styles.imageActionText, styles.imageActionRemoveText]}>Remove</Text>
               </TouchableOpacity>
             </View>
           </View>
@@ -306,24 +294,24 @@ const ReportWasteScreen = ({ navigation }) => {
           </TouchableOpacity>
         )}
 
-        {/* ── TODO note (transparent to users, visible in code) ────────── */}
-        {/* TODO Sprint 2: Upload imageUri to cloud storage here before submit */}
-
-        {/* ── Continue to review ───────────────────────────────────────── */}
+        {/* ── Continue CTA ────────────────────────────────────────────── */}
         <TouchableOpacity
           style={styles.continueBtn}
           onPress={handleProceedToReview}
           accessibilityRole="button"
           accessibilityLabel="Continue to review report"
         >
-          <Text style={styles.continueBtnText}>Review Report →</Text>
+          <Text style={styles.continueBtnText}>Continue  ›</Text>
         </TouchableOpacity>
+        {!wasteType && (
+          <Text style={styles.continueBtnHint}>SELECT A WASTE TYPE TO CONTINUE</Text>
+        )}
       </ScrollView>
     </SafeAreaView>
   );
 };
 
-// ── Small shared sub-components ───────────────────────────────────────────
+// ── Sub-components ────────────────────────────────────────────────────────
 const SectionLabel = ({ text }) => (
   <Text style={styles.sectionLabel}>{text}</Text>
 );
@@ -331,74 +319,143 @@ const SectionLabel = ({ text }) => (
 const FieldError = ({ msg }) =>
   msg ? <Text style={styles.errorText}>{msg}</Text> : null;
 
-const StepDot = ({ n, label, active = false }) => (
+const StepDot = ({ n, label, active = false, done = false }) => (
   <View style={styles.stepDotWrap}>
-    <View style={[styles.stepDot, active && styles.stepDotActive]}>
-      <Text style={[styles.stepDotNum, active && styles.stepDotNumActive]}>{n}</Text>
+    <View style={[
+      styles.stepDot,
+      active && styles.stepDotActive,
+      done && styles.stepDotDone,
+    ]}>
+      <Text style={[styles.stepDotNum, (active || done) && styles.stepDotNumActive]}>
+        {done ? "✓" : n}
+      </Text>
     </View>
-    <Text style={[styles.stepLabel, active && styles.stepLabelActive]}>{label}</Text>
+    <Text style={[styles.stepDotLabel, active && styles.stepDotLabelActive]}>{label}</Text>
   </View>
 );
 
 // ── Styles ────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.BACKGROUND },
+
+  // Dark green header
+  header: {
+    backgroundColor: COLORS.HEADER_BG,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  headerTop: { flexDirection: "row", alignItems: "center" },
+  backText: { color: COLORS.TEXT_INVERSE, fontSize: 22, fontWeight: "300" },
+  stepLabel: { fontSize: 11, color: COLORS.PRIMARY_TINT, letterSpacing: 1, fontWeight: "600" },
+  title: { fontSize: 20, fontWeight: "bold", color: COLORS.TEXT_INVERSE },
+
   scroll: { padding: 16, paddingBottom: 48 },
 
-  header: { marginBottom: 20 },
-  backText: { color: COLORS.PRIMARY, fontSize: 16, marginBottom: 12 },
-  title: { fontSize: 22, fontWeight: "bold", color: COLORS.TEXT_PRIMARY, marginBottom: 4 },
-  subtitle: { fontSize: 13, color: COLORS.TEXT_SECONDARY, lineHeight: 18 },
-
+  // Progress step indicator
   stepRow: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "center",
-    marginBottom: 24,
-    paddingHorizontal: 16,
+    marginBottom: 20,
+    paddingHorizontal: 8,
   },
   stepDotWrap: { alignItems: "center" },
   stepDot: {
-    width: 28, height: 28, borderRadius: 14,
-    backgroundColor: COLORS.BORDER,
+    width: 32, height: 32, borderRadius: 16,
+    backgroundColor: COLORS.STEP_INACTIVE,
     justifyContent: "center", alignItems: "center",
+    borderWidth: 2, borderColor: COLORS.STEP_INACTIVE,
   },
-  stepDotActive: { backgroundColor: COLORS.PRIMARY },
-  stepDotNum: { fontSize: 12, fontWeight: "bold", color: COLORS.TEXT_SECONDARY },
+  stepDotActive: { backgroundColor: COLORS.STEP_ACTIVE, borderColor: COLORS.STEP_ACTIVE },
+  stepDotDone:   { backgroundColor: COLORS.STEP_DONE,   borderColor: COLORS.STEP_DONE },
+  stepDotNum:    { fontSize: 13, fontWeight: "bold", color: COLORS.TEXT_SECONDARY },
   stepDotNumActive: { color: COLORS.TEXT_INVERSE },
-  stepLabel: { fontSize: 10, color: COLORS.TEXT_SECONDARY, marginTop: 4 },
-  stepLabelActive: { color: COLORS.PRIMARY, fontWeight: "600" },
-  stepLine: { flex: 1, height: 2, backgroundColor: COLORS.BORDER, marginHorizontal: 4, marginBottom: 16 },
-
-  sectionLabel: {
-    fontSize: 13, fontWeight: "700", color: COLORS.TEXT_PRIMARY,
-    marginBottom: 8, marginTop: 18,
+  stepDotLabel:  { fontSize: 9, color: COLORS.TEXT_DISABLED, marginTop: 4, fontWeight: "700", letterSpacing: 0.5 },
+  stepDotLabelActive: { color: COLORS.STEP_ACTIVE },
+  stepLine: {
+    flex: 1, height: 2,
+    backgroundColor: COLORS.STEP_LINE,
+    marginHorizontal: 4, marginBottom: 18,
   },
 
-  categoryGrid: { flexDirection: "row", flexWrap: "wrap", gap: 8 },
+  sectionHint: {
+    fontSize: 13,
+    color: COLORS.TEXT_SECONDARY,
+    lineHeight: 20,
+    marginBottom: 14,
+  },
+  sectionLabel: {
+    fontSize: 11, fontWeight: "700",
+    color: COLORS.TEXT_SECONDARY,
+    letterSpacing: 0.8,
+    textTransform: "uppercase",
+    marginBottom: 10, marginTop: 20,
+  },
+
+  // Category grid – 2 columns matching wireframe
+  categoryGrid: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 10,
+  },
   categoryBtn: {
-    width: "30%",
-    paddingVertical: 10,
+    width: "47%",
     backgroundColor: COLORS.SURFACE,
-    borderRadius: 10,
+    borderRadius: 14,
     borderWidth: 1.5,
     borderColor: COLORS.BORDER,
+    padding: 14,
     alignItems: "center",
-    justifyContent: "center",
+    gap: 6,
   },
-  categoryBtnSelected: { borderColor: COLORS.PRIMARY, backgroundColor: "#E8F5E9" },
-  categoryEmoji: { fontSize: 22, marginBottom: 4 },
-  categoryLabel: { fontSize: 11, color: COLORS.TEXT_SECONDARY },
-  categoryLabelSelected: { color: COLORS.PRIMARY, fontWeight: "700" },
+  categoryBtnSelected: {
+    borderColor: COLORS.PRIMARY,
+    backgroundColor: COLORS.PRIMARY_TINT,
+  },
+  categoryIconWrap: {
+    width: 56, height: 56,
+    borderRadius: 14,
+    backgroundColor: COLORS.PRIMARY_TINT,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  categoryIconWrapSelected: {
+    backgroundColor: COLORS.PRIMARY,
+  },
+  categoryEmoji: { fontSize: 28 },
+  categoryLabel: {
+    fontSize: 13, fontWeight: "700",
+    color: COLORS.TEXT_PRIMARY,
+    textAlign: "center",
+  },
+  categoryLabelSelected: { color: COLORS.PRIMARY },
+  categoryDesc: {
+    fontSize: 11, color: COLORS.TEXT_SECONDARY,
+    textAlign: "center", lineHeight: 15,
+  },
+  categorySelectRow: {
+    flexDirection: "row", alignItems: "center", gap: 5, marginTop: 4,
+  },
+  categoryRadio: {
+    width: 16, height: 16, borderRadius: 8,
+    borderWidth: 1.5, borderColor: COLORS.BORDER,
+    backgroundColor: COLORS.SURFACE,
+  },
+  categoryRadioSelected: {
+    borderColor: COLORS.PRIMARY,
+    backgroundColor: COLORS.PRIMARY,
+  },
+  categorySelectText: {
+    fontSize: 10, fontWeight: "700",
+    color: COLORS.TEXT_DISABLED, letterSpacing: 0.5,
+  },
 
+  // Description
   textArea: {
     backgroundColor: COLORS.SURFACE,
-    borderWidth: 1.5,
-    borderColor: COLORS.BORDER,
-    borderRadius: 10,
-    padding: 12,
-    fontSize: 14,
-    color: COLORS.TEXT_PRIMARY,
+    borderWidth: 1.5, borderColor: COLORS.BORDER,
+    borderRadius: 12, padding: 14,
+    fontSize: 14, color: COLORS.TEXT_PRIMARY,
     minHeight: 110,
   },
   inputError: { borderColor: COLORS.ERROR },
@@ -407,23 +464,59 @@ const styles = StyleSheet.create({
   charCountWarn: { color: COLORS.WARNING },
   errorText: { fontSize: 12, color: COLORS.ERROR, marginTop: 4, flex: 1 },
 
-  locationBtn: {
+  // Location buttons matching wireframe "Use Current / Select Manually" style
+  locationOptionBtn: {
+    flexDirection: "row",
+    alignItems: "center",
     backgroundColor: COLORS.SURFACE,
+    borderRadius: 12,
     borderWidth: 1.5,
     borderColor: COLORS.BORDER,
-    borderRadius: 10,
     padding: 14,
-    minHeight: 54,
-    justifyContent: "center",
+    gap: 12,
+    marginBottom: 8,
   },
-  locationBtnSet: { borderColor: COLORS.SUCCESS },
-  locationBtnError: { borderColor: COLORS.ERROR },
-  locationRow: { flexDirection: "row", alignItems: "center", gap: 10 },
-  locationIcon: { fontSize: 20 },
-  locationCoords: { fontSize: 13, fontWeight: "600", color: COLORS.SUCCESS },
-  locationHint: { fontSize: 11, color: COLORS.TEXT_DISABLED, marginTop: 2 },
-  locationPlaceholder: { fontSize: 14, color: COLORS.TEXT_SECONDARY },
+  locationOptionBtnActive: {
+    borderColor: COLORS.PRIMARY,
+    backgroundColor: "#F0FAF0",
+  },
+  locationOptionIcon: {
+    width: 40, height: 40, borderRadius: 10,
+    backgroundColor: COLORS.PRIMARY_TINT,
+    justifyContent: "center", alignItems: "center",
+  },
+  locationOptionTitle: {
+    fontSize: 14, fontWeight: "700", color: COLORS.TEXT_PRIMARY,
+  },
+  locationOptionSub: {
+    fontSize: 12, color: COLORS.TEXT_SECONDARY, marginTop: 2,
+  },
+  locationArrow: { fontSize: 22, color: COLORS.TEXT_SECONDARY },
 
+  // GPS coordinates card
+  coordsCard: {
+    backgroundColor: COLORS.SURFACE,
+    borderRadius: 12,
+    padding: 14,
+    marginBottom: 4,
+    borderWidth: 1,
+    borderColor: COLORS.BORDER,
+  },
+  coordsLabel: {
+    fontSize: 10, fontWeight: "700",
+    color: COLORS.TEXT_SECONDARY, letterSpacing: 1,
+    marginBottom: 4,
+  },
+  coordsValue: {
+    fontSize: 16, fontWeight: "700",
+    color: COLORS.TEXT_PRIMARY,
+  },
+  coordsRetry: {
+    fontSize: 12, color: COLORS.PRIMARY,
+    fontWeight: "600", marginTop: 8,
+  },
+
+  // Photo
   imagePreviewContainer: { borderRadius: 12, overflow: "hidden", marginBottom: 4 },
   imagePreview: { width: "100%", height: 200, resizeMode: "cover" },
   imageActions: { flexDirection: "row", gap: 8, marginTop: 8 },
@@ -435,30 +528,31 @@ const styles = StyleSheet.create({
   imageActionRemove: { borderColor: COLORS.ERROR },
   imageActionText: { fontSize: 13, fontWeight: "600", color: COLORS.PRIMARY },
   imageActionRemoveText: { color: COLORS.ERROR },
-
   imagePickerBtn: {
     backgroundColor: COLORS.SURFACE,
-    borderWidth: 1.5,
-    borderColor: COLORS.BORDER,
-    borderStyle: "dashed",
-    borderRadius: 12,
-    height: 120,
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 6,
+    borderWidth: 1.5, borderColor: COLORS.BORDER,
+    borderStyle: "dashed", borderRadius: 12,
+    height: 120, justifyContent: "center",
+    alignItems: "center", gap: 6,
   },
   imagePickerIcon: { fontSize: 32 },
   imagePickerText: { fontSize: 14, fontWeight: "600", color: COLORS.TEXT_SECONDARY },
   imagePickerHint: { fontSize: 12, color: COLORS.TEXT_DISABLED },
 
+  // Amber CTA – "Continue >"
   continueBtn: {
-    backgroundColor: COLORS.PRIMARY,
+    backgroundColor: COLORS.ACCENT,
     paddingVertical: 16,
     borderRadius: 12,
     alignItems: "center",
     marginTop: 28,
   },
   continueBtnText: { color: COLORS.TEXT_INVERSE, fontSize: 16, fontWeight: "bold" },
+  continueBtnHint: {
+    fontSize: 10, color: COLORS.TEXT_DISABLED,
+    textAlign: "center", marginTop: 8,
+    letterSpacing: 0.8, fontWeight: "600",
+  },
 });
 
 export default ReportWasteScreen;

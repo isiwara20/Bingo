@@ -80,7 +80,7 @@ const styles = StyleSheet.create({
   name: { fontSize: 22, fontWeight: "bold", color: COLORS.TEXT_PRIMARY, marginBottom: 4 },
   email: { fontSize: 14, color: COLORS.TEXT_SECONDARY, marginBottom: 12 },
   roleBadge: {
-    backgroundColor: COLORS.PRIMARY_LIGHT,
+    backgroundColor: COLORS.PRIMARY,
     paddingHorizontal: 12, paddingVertical: 4,
     borderRadius: 20, marginBottom: 8,
   },

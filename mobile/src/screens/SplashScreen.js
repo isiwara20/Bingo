@@ -27,20 +27,21 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: COLORS.PRIMARY,
+    backgroundColor: COLORS.HEADER_BG,   // deep dark green
   },
   logo: { fontSize: 64, marginBottom: 16 },
   title: {
-    fontSize: 40,
+    fontSize: 42,
     fontWeight: "bold",
     color: COLORS.TEXT_INVERSE,
-    letterSpacing: 2,
+    letterSpacing: 4,
   },
   subtitle: {
     fontSize: 14,
-    color: COLORS.PRIMARY_LIGHT,
+    color: COLORS.PRIMARY_TINT,
     marginTop: 8,
     marginBottom: 48,
+    letterSpacing: 1,
   },
   spinner: { marginTop: 24 },
 });
