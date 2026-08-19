@@ -1,118 +1,234 @@
 /**
  * BinGo – Main Navigator
  *
- * Bottom tab navigation for authenticated users.
- * Nested stack navigators handle in-flow navigation per tab.
+ * Bottom tab navigation matching the high-fidelity wireframe design:
+ *   - White nav bar background
+ *   - Dark green active tab icon + label
+ *   - Grey inactive icons
+ *   - Centre FAB (dark green circle with + / report icon) for quick reporting
  *
- * Tabs:
- *   Home → Report → Map → Schedule → Profile
- *
- * TODO: Replace placeholder icons with react-native-vector-icons
- * TODO: Add role-based tab visibility (admin tabs, authority tabs)
+ * Tabs: Home | Map | [FAB] | Alerts | Profile
  */
 
 import React from "react";
+import {
+  View,
+  Text,
+  TouchableOpacity,
+  StyleSheet,
+  Platform,
+} from "react-native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
-import { Text } from "react-native";
 
 import COLORS from "../constants/colors";
 
-// Screens
-import HomeScreen from "../screens/HomeScreen";
-import ReportWasteScreen from "../screens/ReportWasteScreen";
-import ReportReviewScreen from "../screens/ReportReviewScreen";
-import ReportDetailsScreen from "../screens/ReportDetailsScreen";
-import ReportStatusScreen from "../screens/ReportStatusScreen";
-import WasteMapScreen from "../screens/WasteMapScreen";
+// ── Screens ───────────────────────────────────────────────────────────────
+import HomeScreen              from "../screens/HomeScreen";
+import ReportWasteScreen       from "../screens/ReportWasteScreen";
+import ReportReviewScreen      from "../screens/ReportReviewScreen";
+import ReportDetailsScreen     from "../screens/ReportDetailsScreen";
+import ReportStatusScreen      from "../screens/ReportStatusScreen";
+import WasteMapScreen          from "../screens/WasteMapScreen";
 import CollectionScheduleScreen from "../screens/CollectionScheduleScreen";
-import RecyclingGuideScreen from "../screens/RecyclingGuideScreen";
-import CommunityScreen from "../screens/CommunityScreen";
-import NotificationsScreen from "../screens/NotificationsScreen";
-import RewardsScreen from "../screens/RewardsScreen";
-import ProfileScreen from "../screens/ProfileScreen";
-import SettingsScreen from "../screens/SettingsScreen";
-import PaymentScreen from "../screens/PaymentScreen";
+import RecyclingGuideScreen    from "../screens/RecyclingGuideScreen";
+import CommunityScreen         from "../screens/CommunityScreen";
+import NotificationsScreen     from "../screens/NotificationsScreen";
+import RewardsScreen           from "../screens/RewardsScreen";
+import ProfileScreen           from "../screens/ProfileScreen";
+import SettingsScreen          from "../screens/SettingsScreen";
+import PaymentScreen           from "../screens/PaymentScreen";
 
-const Tab = createBottomTabNavigator();
+const Tab   = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
-// ── Tab icon helper (placeholder) ─────────────────────────────────────────
-// TODO: Replace with react-native-vector-icons
-const TabIcon = ({ label, focused }) => (
-  <Text style={{ fontSize: 10, color: focused ? COLORS.PRIMARY : COLORS.TEXT_SECONDARY }}>
-    {label}
-  </Text>
+// ── SVG-free icon set using Unicode / emoji ───────────────────────────────
+// Wireframe tabs: Home | Map | [FAB centre] | Alerts | Profile
+const TAB_ICONS = {
+  Home:    { active: "⌂",  inactive: "⌂"  },
+  Map:     { active: "▦",  inactive: "▦"  },
+  Alerts:  { active: "🔔", inactive: "🔔" },
+  Profile: { active: "👤", inactive: "👤" },
+};
+
+// ── Tab icon component ────────────────────────────────────────────────────
+const TabIcon = ({ name, focused }) => {
+  const icons = {
+    Home:    focused ? "🏠" : "🏠",
+    Map:     focused ? "🗺" : "🗺",
+    Alerts:  focused ? "🔔" : "🔔",
+    Profile: focused ? "👤" : "👤",
+  };
+  return (
+    <Text style={{ fontSize: 20, opacity: focused ? 1 : 0.45 }}>
+      {icons[name] || "●"}
+    </Text>
+  );
+};
+
+// ── Centre FAB – floating report button ───────────────────────────────────
+const ReportFAB = ({ onPress }) => (
+  <TouchableOpacity
+    style={styles.fab}
+    onPress={onPress}
+    activeOpacity={0.85}
+    accessibilityRole="button"
+    accessibilityLabel="Report illegal dumping"
+  >
+    <Text style={styles.fabIcon}>＋</Text>
+  </TouchableOpacity>
 );
 
-// ── Home Stack ─────────────────────────────────────────────────────────────
+// ── Stack navigators ──────────────────────────────────────────────────────
+
 const HomeStack = () => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>
-    <Stack.Screen name="HomeMain" component={HomeScreen} />
+    <Stack.Screen name="HomeMain"      component={HomeScreen} />
     <Stack.Screen name="Notifications" component={NotificationsScreen} />
-    <Stack.Screen name="Rewards" component={RewardsScreen} />
-    <Stack.Screen name="Payment" component={PaymentScreen} />
-    <Stack.Screen name="Settings" component={SettingsScreen} />
+    <Stack.Screen name="Rewards"       component={RewardsScreen} />
+    <Stack.Screen name="Payment"       component={PaymentScreen} />
+    <Stack.Screen name="Settings"      component={SettingsScreen} />
   </Stack.Navigator>
 );
 
-// ── Report Stack ───────────────────────────────────────────────────────────
 const ReportStack = () => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>
-    <Stack.Screen name="ReportWaste" component={ReportWasteScreen} />
-    <Stack.Screen name="ReportReview" component={ReportReviewScreen} />
+    <Stack.Screen name="ReportWaste"   component={ReportWasteScreen} />
+    <Stack.Screen name="ReportReview"  component={ReportReviewScreen} />
     <Stack.Screen name="ReportDetails" component={ReportDetailsScreen} />
-    <Stack.Screen name="ReportStatus" component={ReportStatusScreen} />
+    <Stack.Screen name="ReportStatus"  component={ReportStatusScreen} />
   </Stack.Navigator>
 );
 
-// ── Map Stack ──────────────────────────────────────────────────────────────
 const MapStack = () => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>
-    <Stack.Screen name="WasteMap" component={WasteMapScreen} />
+    <Stack.Screen name="WasteMap"      component={WasteMapScreen} />
     <Stack.Screen name="ReportDetails" component={ReportDetailsScreen} />
   </Stack.Navigator>
 );
 
-// ── Profile Stack ──────────────────────────────────────────────────────────
-const ProfileStack = () => (
+const AlertsStack = () => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>
-    <Stack.Screen name="ProfileMain" component={ProfileScreen} />
-    <Stack.Screen name="Settings" component={SettingsScreen} />
+    <Stack.Screen name="AlertsMain"    component={NotificationsScreen} />
   </Stack.Navigator>
 );
 
-// ── Main Tab Navigator ─────────────────────────────────────────────────────
+const ProfileStack = () => (
+  <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Screen name="ProfileMain"   component={ProfileScreen} />
+    <Stack.Screen name="Settings"      component={SettingsScreen} />
+    <Stack.Screen name="Schedule"      component={CollectionScheduleScreen} />
+    <Stack.Screen name="Recycling"     component={RecyclingGuideScreen} />
+    <Stack.Screen name="Community"     component={CommunityScreen} />
+    <Stack.Screen name="Rewards"       component={RewardsScreen} />
+  </Stack.Navigator>
+);
+
+// ── Main Tab Navigator ────────────────────────────────────────────────────
 const MainNavigator = () => {
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
-        tabBarActiveTintColor: COLORS.PRIMARY,
-        tabBarInactiveTintColor: COLORS.TEXT_SECONDARY,
-        tabBarStyle: {
-          backgroundColor: COLORS.SURFACE,
-          borderTopColor: COLORS.BORDER,
-          height: 60,
-          paddingBottom: 8,
-        },
-        tabBarLabelStyle: {
-          fontSize: 11,
-        },
+        tabBarActiveTintColor:   COLORS.NAV_ACTIVE,
+        tabBarInactiveTintColor: COLORS.NAV_INACTIVE,
+        tabBarStyle: styles.tabBar,
+        tabBarLabelStyle: styles.tabLabel,
         tabBarIcon: ({ focused }) => (
-          <TabIcon label={route.name} focused={focused} />
+          <TabIcon name={route.name} focused={focused} />
         ),
       })}
     >
-      <Tab.Screen name="Home" component={HomeStack} options={{ tabBarLabel: "Home" }} />
-      <Tab.Screen name="Report" component={ReportStack} options={{ tabBarLabel: "Report" }} />
-      <Tab.Screen name="Map" component={MapStack} options={{ tabBarLabel: "Map" }} />
-      <Tab.Screen name="Schedule" component={CollectionScheduleScreen} options={{ tabBarLabel: "Schedule" }} />
-      <Tab.Screen name="Community" component={CommunityScreen} options={{ tabBarLabel: "Community" }} />
-      <Tab.Screen name="Recycling" component={RecyclingGuideScreen} options={{ tabBarLabel: "Recycle" }} />
-      <Tab.Screen name="Profile" component={ProfileStack} options={{ tabBarLabel: "Profile" }} />
+      {/* Tab 1 – Home */}
+      <Tab.Screen
+        name="Home"
+        component={HomeStack}
+        options={{ tabBarLabel: "Home" }}
+      />
+
+      {/* Tab 2 – Map */}
+      <Tab.Screen
+        name="Map"
+        component={MapStack}
+        options={{ tabBarLabel: "Map" }}
+      />
+
+      {/* Tab 3 – Centre FAB (Report) – hidden label + custom button */}
+      <Tab.Screen
+        name="Report"
+        component={ReportStack}
+        options={{
+          tabBarLabel: () => null,
+          tabBarIcon: () => null,
+          tabBarButton: (props) => (
+            <ReportFAB onPress={props.onPress} />
+          ),
+        }}
+      />
+
+      {/* Tab 4 – Alerts */}
+      <Tab.Screen
+        name="Alerts"
+        component={AlertsStack}
+        options={{ tabBarLabel: "Alerts" }}
+      />
+
+      {/* Tab 5 – Profile */}
+      <Tab.Screen
+        name="Profile"
+        component={ProfileStack}
+        options={{ tabBarLabel: "Profile" }}
+      />
     </Tab.Navigator>
   );
 };
+
+// ── Styles ────────────────────────────────────────────────────────────────
+const styles = StyleSheet.create({
+  // Bottom nav bar
+  tabBar: {
+    backgroundColor: COLORS.NAV_BG,           // white
+    borderTopWidth: 1,
+    borderTopColor: COLORS.DIVIDER,
+    height: Platform.OS === "android" ? 64 : 80,
+    paddingBottom: Platform.OS === "android" ? 8 : 20,
+    paddingTop: 6,
+    // Subtle shadow matching wireframe
+    shadowColor: COLORS.SHADOW,
+    shadowOffset: { width: 0, height: -2 },
+    shadowOpacity: 0.06,
+    shadowRadius: 8,
+    elevation: 12,
+  },
+  tabLabel: {
+    fontSize: 11,
+    fontWeight: "600",
+    marginTop: 2,
+  },
+
+  // Centre FAB
+  fab: {
+    width: 56,
+    height: 56,
+    borderRadius: 28,
+    backgroundColor: COLORS.NAV_FAB,          // dark green
+    justifyContent: "center",
+    alignItems: "center",
+    // Lift it above the nav bar
+    marginBottom: Platform.OS === "android" ? 18 : 28,
+    // Shadow
+    shadowColor: COLORS.SHADOW,
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    elevation: 8,
+  },
+  fabIcon: {
+    fontSize: 28,
+    color: COLORS.NAV_FAB_ICON,               // white
+    lineHeight: 32,
+    includeFontPadding: false,
+  },
+});
 
 export default MainNavigator;

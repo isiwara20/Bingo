@@ -75,25 +75,29 @@ const ReportReviewScreen = ({ route, navigation }) => {
   const handleEdit = () => navigation.goBack();
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView
-        contentContainerStyle={styles.scroll}
-        showsVerticalScrollIndicator={false}
-      >
-        {/* ── Header ──────────────────────────────────────────────────── */}
-        <View style={styles.header}>
+    <SafeAreaView style={styles.container} edges={["top"]}>
+
+      {/* ── Dark green header ────────────────────────────────────────── */}
+      <View style={styles.header}>
+        <View style={styles.headerTop}>
           <TouchableOpacity
             onPress={handleEdit}
             accessibilityRole="button"
             accessibilityLabel="Go back to edit report"
           >
-            <Text style={styles.backText}>← Edit</Text>
+            <Text style={styles.backText}>←</Text>
           </TouchableOpacity>
-          <Text style={styles.title}>Review Your Report</Text>
-          <Text style={styles.subtitle}>
-            Check the details before submitting
-          </Text>
+          <View style={{ flex: 1, marginLeft: 10 }}>
+            <Text style={styles.stepSubtitle}>STEP 2 OF 3 · REVIEW</Text>
+            <Text style={styles.title}>Review Your Report</Text>
+          </View>
         </View>
+      </View>
+
+      <ScrollView
+        contentContainerStyle={styles.scroll}
+        showsVerticalScrollIndicator={false}
+      >
 
         {/* ── Step indicator ──────────────────────────────────────────── */}
         <View style={styles.stepRow}>
@@ -147,7 +151,7 @@ const ReportReviewScreen = ({ route, navigation }) => {
             accessibilityRole="button"
             accessibilityLabel="Edit report"
           >
-            <Text style={styles.editBtnText}>✏️  Edit</Text>
+            <Text style={styles.editBtnText}>Edit</Text>
           </TouchableOpacity>
 
           <TouchableOpacity
@@ -160,7 +164,7 @@ const ReportReviewScreen = ({ route, navigation }) => {
             {submitting ? (
               <ActivityIndicator color={COLORS.TEXT_INVERSE} />
             ) : (
-              <Text style={styles.submitBtnText}>Submit Report</Text>
+              <Text style={styles.submitBtnText}>Submit Incident</Text>
             )}
           </TouchableOpacity>
         </View>
@@ -214,88 +218,79 @@ const StepDot = ({ n, label, active = false, done = false }) => (
 // ── Styles ─────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.BACKGROUND },
+
+  // Dark green header
+  header: {
+    backgroundColor: COLORS.HEADER_BG,
+    paddingHorizontal: 16,
+    paddingVertical: 14,
+  },
+  headerTop: { flexDirection: "row", alignItems: "center" },
+  backText: { color: COLORS.TEXT_INVERSE, fontSize: 22, fontWeight: "300", marginRight: 10 },
+  stepSubtitle: { fontSize: 11, color: COLORS.PRIMARY_TINT, letterSpacing: 1, fontWeight: "600" },
+  title: { fontSize: 20, fontWeight: "bold", color: COLORS.TEXT_INVERSE },
+
   scroll: { padding: 16, paddingBottom: 48 },
 
-  header: { marginBottom: 20 },
-  backText: { color: COLORS.PRIMARY, fontSize: 16, marginBottom: 12 },
-  title: { fontSize: 22, fontWeight: "bold", color: COLORS.TEXT_PRIMARY, marginBottom: 4 },
-  subtitle: { fontSize: 13, color: COLORS.TEXT_SECONDARY },
-
   stepRow: {
-    flexDirection: "row",
-    alignItems: "center",
-    justifyContent: "center",
-    marginBottom: 20,
-    paddingHorizontal: 16,
+    flexDirection: "row", alignItems: "center",
+    justifyContent: "center", marginBottom: 20, paddingHorizontal: 8,
   },
   stepDotWrap: { alignItems: "center" },
   stepDot: {
-    width: 28, height: 28, borderRadius: 14,
-    backgroundColor: COLORS.BORDER,
+    width: 32, height: 32, borderRadius: 16,
+    backgroundColor: COLORS.STEP_INACTIVE,
     justifyContent: "center", alignItems: "center",
+    borderWidth: 2, borderColor: COLORS.STEP_INACTIVE,
   },
-  stepDotActive: { backgroundColor: COLORS.PRIMARY },
-  stepDotDone:   { backgroundColor: COLORS.SUCCESS },
-  stepDotNum: { fontSize: 12, fontWeight: "bold", color: COLORS.TEXT_SECONDARY },
+  stepDotActive: { backgroundColor: COLORS.STEP_ACTIVE, borderColor: COLORS.STEP_ACTIVE },
+  stepDotDone:   { backgroundColor: COLORS.STEP_DONE,   borderColor: COLORS.STEP_DONE },
+  stepDotNum:    { fontSize: 13, fontWeight: "bold", color: COLORS.TEXT_SECONDARY },
   stepDotNumActive: { color: COLORS.TEXT_INVERSE },
-  stepLabel: { fontSize: 10, color: COLORS.TEXT_SECONDARY, marginTop: 4 },
-  stepLabelActive: { color: COLORS.PRIMARY, fontWeight: "600" },
-  stepLabelDone:   { color: COLORS.SUCCESS, fontWeight: "600" },
-  stepLine:     { flex: 1, height: 2, backgroundColor: COLORS.BORDER, marginHorizontal: 4, marginBottom: 16 },
-  stepLineDone: { flex: 1, height: 2, backgroundColor: COLORS.SUCCESS, marginHorizontal: 4, marginBottom: 16 },
+  stepLabel:     { fontSize: 9, color: COLORS.TEXT_DISABLED, marginTop: 4, fontWeight: "700", letterSpacing: 0.5 },
+  stepLabelActive: { color: COLORS.STEP_ACTIVE },
+  stepLabelDone:   { color: COLORS.STEP_DONE },
+  stepLine:     { flex: 1, height: 2, backgroundColor: COLORS.STEP_LINE, marginHorizontal: 4, marginBottom: 18 },
+  stepLineDone: { flex: 1, height: 2, backgroundColor: COLORS.STEP_DONE, marginHorizontal: 4, marginBottom: 18 },
 
-  photo: {
-    width: "100%", height: 210,
-    borderRadius: 12, marginBottom: 16,
-  },
+  photo: { width: "100%", height: 210, borderRadius: 12, marginBottom: 16 },
   noPhotoBox: {
-    backgroundColor: COLORS.SURFACE,
-    borderRadius: 12,
-    height: 80,
-    justifyContent: "center",
-    alignItems: "center",
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: COLORS.BORDER,
+    backgroundColor: COLORS.SURFACE, borderRadius: 12,
+    height: 80, justifyContent: "center", alignItems: "center",
+    marginBottom: 16, borderWidth: 1, borderColor: COLORS.BORDER,
   },
   noPhotoText: { color: COLORS.TEXT_SECONDARY, fontSize: 14 },
 
   reviewRow: {
-    backgroundColor: COLORS.SURFACE,
-    borderRadius: 10,
-    padding: 14,
-    marginBottom: 8,
+    backgroundColor: COLORS.SURFACE, borderRadius: 12,
+    padding: 14, marginBottom: 8,
+    borderWidth: 1, borderColor: COLORS.BORDER,
   },
-  reviewLabel: { fontSize: 11, color: COLORS.TEXT_SECONDARY, marginBottom: 4 },
+  reviewLabel: {
+    fontSize: 10, color: COLORS.TEXT_SECONDARY,
+    marginBottom: 4, fontWeight: "700",
+    textTransform: "uppercase", letterSpacing: 0.8,
+  },
   reviewValue: { fontSize: 15, color: COLORS.TEXT_PRIMARY, lineHeight: 22 },
 
-  actions: { flexDirection: "row", gap: 10, marginTop: 20 },
+  actions: { flexDirection: "row", gap: 10, marginTop: 24 },
   editBtn: {
-    flex: 1,
-    paddingVertical: 15,
-    borderRadius: 12,
-    borderWidth: 1.5,
-    borderColor: COLORS.PRIMARY,
-    alignItems: "center",
+    flex: 1, paddingVertical: 15, borderRadius: 12,
+    borderWidth: 1.5, borderColor: COLORS.BORDER,
+    backgroundColor: COLORS.SURFACE, alignItems: "center",
   },
-  editBtnText: { color: COLORS.PRIMARY, fontSize: 15, fontWeight: "600" },
+  editBtnText: { color: COLORS.TEXT_PRIMARY, fontSize: 15, fontWeight: "700" },
   submitBtn: {
-    flex: 2,
-    paddingVertical: 15,
-    borderRadius: 12,
+    flex: 2, paddingVertical: 15, borderRadius: 12,
     backgroundColor: COLORS.PRIMARY,
-    alignItems: "center",
-    justifyContent: "center",
+    alignItems: "center", justifyContent: "center",
   },
   submitBtnDisabled: { opacity: 0.65 },
   submitBtnText: { color: COLORS.TEXT_INVERSE, fontSize: 15, fontWeight: "bold" },
 
   disclaimer: {
-    fontSize: 11,
-    color: COLORS.TEXT_DISABLED,
-    textAlign: "center",
-    marginTop: 16,
-    lineHeight: 16,
+    fontSize: 11, color: COLORS.TEXT_DISABLED,
+    textAlign: "center", marginTop: 16, lineHeight: 16,
   },
 });
 
