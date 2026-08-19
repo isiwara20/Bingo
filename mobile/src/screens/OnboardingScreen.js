@@ -47,59 +47,32 @@ const OnboardingScreen = ({ navigation }) => {
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.BACKGROUND,
-  },
+  container: { flex: 1, backgroundColor: COLORS.BACKGROUND },
   content: {
-    flex: 1,
-    justifyContent: "center",
-    alignItems: "center",
-    paddingHorizontal: 32,
+    flex: 1, justifyContent: "center",
+    alignItems: "center", paddingHorizontal: 32,
   },
   emoji: { fontSize: 80, marginBottom: 24 },
   title: {
-    fontSize: 28,
-    fontWeight: "bold",
-    color: COLORS.TEXT_PRIMARY,
-    marginBottom: 16,
-    textAlign: "center",
+    fontSize: 28, fontWeight: "bold",
+    color: COLORS.TEXT_PRIMARY, marginBottom: 16, textAlign: "center",
   },
   description: {
-    fontSize: 16,
-    color: COLORS.TEXT_SECONDARY,
-    textAlign: "center",
-    lineHeight: 24,
+    fontSize: 16, color: COLORS.TEXT_SECONDARY,
+    textAlign: "center", lineHeight: 24,
   },
-  actions: {
-    paddingHorizontal: 24,
-    paddingBottom: 32,
-    gap: 12,
-  },
+  actions: { paddingHorizontal: 24, paddingBottom: 32, gap: 12 },
   primaryButton: {
-    backgroundColor: COLORS.PRIMARY,
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: "center",
+    backgroundColor: COLORS.PRIMARY,         // dark green
+    paddingVertical: 16, borderRadius: 12, alignItems: "center",
   },
-  primaryButtonText: {
-    color: COLORS.TEXT_INVERSE,
-    fontSize: 16,
-    fontWeight: "bold",
-  },
+  primaryButtonText: { color: COLORS.TEXT_INVERSE, fontSize: 16, fontWeight: "bold" },
   secondaryButton: {
     backgroundColor: COLORS.TRANSPARENT,
-    paddingVertical: 16,
-    borderRadius: 12,
-    alignItems: "center",
-    borderWidth: 1,
-    borderColor: COLORS.PRIMARY,
+    paddingVertical: 16, borderRadius: 12,
+    alignItems: "center", borderWidth: 1.5, borderColor: COLORS.PRIMARY,
   },
-  secondaryButtonText: {
-    color: COLORS.PRIMARY,
-    fontSize: 16,
-    fontWeight: "600",
-  },
+  secondaryButtonText: { color: COLORS.PRIMARY, fontSize: 16, fontWeight: "600" },
 });
 
 export default OnboardingScreen;
