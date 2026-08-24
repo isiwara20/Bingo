@@ -3,13 +3,6 @@
  *
  * Multi-step onboarding shown to first-time users before login/register.
  * Three slides covering the app's core value propositions.
- *
- * Features:
- *  - Animated slide transitions (react-native-reanimated)
- *  - Dot pagination indicator
- *  - Skip button (jumps to end)
- *  - Next / Get Started CTA
- *  - "I already have an account" link on final slide
  */
 
 import React, { useRef, useState } from "react";
@@ -22,13 +15,13 @@ import {
   Dimensions,
   Animated,
   StatusBar,
+  Image,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import COLORS from "../constants/colors";
 
 const { width: SCREEN_WIDTH } = Dimensions.get("window");
 
-// ── Slide Data ────────────────────────────────────────────────────────────────
 const SLIDES = [
   {
     id: "1",
@@ -59,9 +52,8 @@ const SLIDES = [
   },
 ];
 
-// ── Dot Indicator ─────────────────────────────────────────────────────────────
 const DotIndicator = ({ count, activeIndex }) => (
-  <View style={styles.dotsContainer} accessibilityRole="none">
+  <View style={styles.dotsContainer}>
     {Array.from({ length: count }).map((_, i) => (
       <View
         key={i}
@@ -74,7 +66,6 @@ const DotIndicator = ({ count, activeIndex }) => (
   </View>
 );
 
-// ── Single Slide ──────────────────────────────────────────────────────────────
 const Slide = ({ item }) => (
   <View style={[styles.slide, { backgroundColor: item.backgroundColor }]}>
     <View style={styles.illustrationContainer}>
@@ -89,7 +80,6 @@ const Slide = ({ item }) => (
   </View>
 );
 
-// ── Main Screen ───────────────────────────────────────────────────────────────
 const OnboardingScreen = ({ navigation }) => {
   const [activeIndex, setActiveIndex] = useState(0);
   const flatListRef = useRef(null);
@@ -119,7 +109,9 @@ const OnboardingScreen = ({ navigation }) => {
     }
   }).current;
 
-  const viewabilityConfig = useRef({ viewAreaCoveragePercentThreshold: 50 }).current;
+  const viewabilityConfig = useRef({
+    viewAreaCoveragePercentThreshold: 50,
+  }).current;
 
   return (
     <SafeAreaView style={styles.container}>
@@ -128,11 +120,14 @@ const OnboardingScreen = ({ navigation }) => {
         backgroundColor={SLIDES[activeIndex].backgroundColor}
       />
 
-      {/* Skip button – hidden on last slide */}
+      {/* Top bar with logo */}
       <View style={styles.topBar}>
-        <View style={styles.brandContainer}>
-          <Text style={styles.brandName}>BinGo</Text>
-        </View>
+        <Image
+          source={require("../../assets/logo.png")}
+          style={styles.logo}
+          resizeMode="contain"
+          accessibilityLabel="BinGo logo"
+        />
         {!isLastSlide && (
           <TouchableOpacity
             onPress={handleSkip}
@@ -172,10 +167,8 @@ const OnboardingScreen = ({ navigation }) => {
           { backgroundColor: SLIDES[activeIndex].backgroundColor },
         ]}
       >
-        {/* Dot indicator */}
         <DotIndicator count={SLIDES.length} activeIndex={activeIndex} />
 
-        {/* Primary CTA */}
         <TouchableOpacity
           style={[
             styles.primaryButton,
@@ -190,8 +183,7 @@ const OnboardingScreen = ({ navigation }) => {
           </Text>
         </TouchableOpacity>
 
-        {/* Login link – only on last slide */}
-        {isLastSlide && (
+        {isLastSlide ? (
           <View style={styles.loginRow}>
             <Text style={styles.loginPrompt}>Already have an account? </Text>
             <TouchableOpacity
@@ -202,39 +194,27 @@ const OnboardingScreen = ({ navigation }) => {
               <Text style={styles.loginLink}>Sign In</Text>
             </TouchableOpacity>
           </View>
+        ) : (
+          <View style={styles.loginRowSpacer} />
         )}
-
-        {/* Spacer so login row doesn't sit right at the edge */}
-        {!isLastSlide && <View style={styles.loginRowSpacer} />}
       </View>
     </SafeAreaView>
   );
 };
 
-// ── Styles ────────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: COLORS.BACKGROUND,
-  },
+  container: { flex: 1, backgroundColor: COLORS.BACKGROUND },
 
-  // Top bar
   topBar: {
     flexDirection: "row",
     alignItems: "center",
     justifyContent: "space-between",
-    paddingHorizontal: 24,
-    paddingVertical: 12,
+    paddingHorizontal: 20,
+    paddingVertical: 10,
   },
-  brandContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-  },
-  brandName: {
-    fontSize: 22,
-    fontWeight: "800",
-    color: COLORS.PRIMARY,
-    letterSpacing: 0.5,
+  logo: {
+    width: 120,
+    height: 44,
   },
   skipButton: {
     paddingHorizontal: 12,
@@ -250,12 +230,8 @@ const styles = StyleSheet.create({
     fontWeight: "500",
   },
 
-  // FlatList
-  flatList: {
-    flex: 1,
-  },
+  flatList: { flex: 1 },
 
-  // Slide
   slide: {
     width: SCREEN_WIDTH,
     flex: 1,
@@ -277,12 +253,8 @@ const styles = StyleSheet.create({
     shadowRadius: 12,
     elevation: 4,
   },
-  emoji: {
-    fontSize: 80,
-  },
-  textContainer: {
-    alignItems: "center",
-  },
+  emoji: { fontSize: 80 },
+  textContainer: { alignItems: "center" },
   slideTitle: {
     fontSize: 26,
     fontWeight: "bold",
@@ -297,35 +269,22 @@ const styles = StyleSheet.create({
     lineHeight: 26,
   },
 
-  // Bottom section
   bottomSection: {
     paddingHorizontal: 24,
     paddingBottom: 16,
     paddingTop: 20,
     gap: 16,
   },
-
-  // Dots
   dotsContainer: {
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
     gap: 8,
   },
-  dot: {
-    height: 8,
-    borderRadius: 4,
-  },
-  dotActive: {
-    width: 24,
-    backgroundColor: COLORS.PRIMARY,
-  },
-  dotInactive: {
-    width: 8,
-    backgroundColor: COLORS.BORDER,
-  },
+  dot: { height: 8, borderRadius: 4 },
+  dotActive: { width: 24, backgroundColor: COLORS.PRIMARY },
+  dotInactive: { width: 8, backgroundColor: COLORS.BORDER },
 
-  // Buttons
   primaryButton: {
     paddingVertical: 16,
     borderRadius: 12,
@@ -343,25 +302,15 @@ const styles = StyleSheet.create({
     letterSpacing: 0.3,
   },
 
-  // Login row
   loginRow: {
     flexDirection: "row",
     justifyContent: "center",
     alignItems: "center",
     paddingBottom: 8,
   },
-  loginRowSpacer: {
-    height: 24,
-  },
-  loginPrompt: {
-    fontSize: 14,
-    color: COLORS.TEXT_SECONDARY,
-  },
-  loginLink: {
-    fontSize: 14,
-    color: COLORS.PRIMARY,
-    fontWeight: "600",
-  },
+  loginRowSpacer: { height: 24 },
+  loginPrompt: { fontSize: 14, color: COLORS.TEXT_SECONDARY },
+  loginLink: { fontSize: 14, color: COLORS.PRIMARY, fontWeight: "600" },
 });
 
 export default OnboardingScreen;

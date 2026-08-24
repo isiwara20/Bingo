@@ -3,16 +3,19 @@
  * Shown briefly on app launch before auth check completes.
  */
 
-import React, { useEffect } from "react";
-import { View, Text, StyleSheet, ActivityIndicator } from "react-native";
+import React from "react";
+import { View, StyleSheet, ActivityIndicator, Image } from "react-native";
 import COLORS from "../constants/colors";
 
 const SplashScreen = () => {
   return (
     <View style={styles.container}>
-      <Text style={styles.logo}>🗑️</Text>
-      <Text style={styles.title}>BinGo</Text>
-      <Text style={styles.subtitle}>Neighbourhood Waste & Recycling</Text>
+      <Image
+        source={require("../../assets/logo.png")}
+        style={styles.logo}
+        resizeMode="contain"
+        accessibilityLabel="BinGo logo"
+      />
       <ActivityIndicator
         size="large"
         color={COLORS.PRIMARY_LIGHT}
@@ -27,22 +30,13 @@ const styles = StyleSheet.create({
     flex: 1,
     justifyContent: "center",
     alignItems: "center",
-    backgroundColor: COLORS.PRIMARY,
+    backgroundColor: COLORS.SURFACE,
   },
-  logo: { fontSize: 64, marginBottom: 16 },
-  title: {
-    fontSize: 40,
-    fontWeight: "bold",
-    color: COLORS.TEXT_INVERSE,
-    letterSpacing: 2,
+  logo: {
+    width: 260,
+    height: 100,
   },
-  subtitle: {
-    fontSize: 14,
-    color: COLORS.PRIMARY_LIGHT,
-    marginTop: 8,
-    marginBottom: 48,
-  },
-  spinner: { marginTop: 24 },
+  spinner: { marginTop: 48 },
 });
 
 export default SplashScreen;

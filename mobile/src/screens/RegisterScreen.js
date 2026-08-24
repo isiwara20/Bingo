@@ -18,6 +18,9 @@ import {
   Platform,
   ScrollView,
   Alert,
+  Image,
+  Keyboard,
+  TouchableWithoutFeedback,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../context/AuthContext";
@@ -94,6 +97,7 @@ const RegisterScreen = ({ navigation }) => {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.keyboardView}
       >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
@@ -108,6 +112,12 @@ const RegisterScreen = ({ navigation }) => {
           </TouchableOpacity>
 
           <View style={styles.header}>
+            <Image
+              source={require("../../assets/logo.png")}
+              style={styles.logo}
+              resizeMode="contain"
+              accessibilityLabel="BinGo logo"
+            />
             <Text style={styles.title}>Create Account</Text>
             <Text style={styles.subtitle}>
               Join BinGo and help keep your neighbourhood clean
@@ -170,6 +180,7 @@ const RegisterScreen = ({ navigation }) => {
             </TouchableOpacity>
           </View>
         </ScrollView>
+        </TouchableWithoutFeedback>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -181,9 +192,10 @@ const styles = StyleSheet.create({
   scrollContent: { flexGrow: 1, padding: 24 },
   backButton: { marginBottom: 16 },
   backText: { color: COLORS.PRIMARY, fontSize: 16 },
-  header: { marginBottom: 32 },
+  header: { marginBottom: 32, alignItems: "center" },
+  logo: { width: 160, height: 60, marginBottom: 16 },
   title: { fontSize: 28, fontWeight: "bold", color: COLORS.TEXT_PRIMARY, marginBottom: 8 },
-  subtitle: { fontSize: 15, color: COLORS.TEXT_SECONDARY, lineHeight: 22 },
+  subtitle: { fontSize: 15, color: COLORS.TEXT_SECONDARY, lineHeight: 22, textAlign: "center" },
   form: { gap: 16 },
   inputGroup: { gap: 6 },
   label: { fontSize: 14, fontWeight: "600", color: COLORS.TEXT_PRIMARY },

@@ -19,6 +19,9 @@ import {
   Platform,
   ScrollView,
   Alert,
+  Image,
+  Keyboard,
+  TouchableWithoutFeedback,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../context/AuthContext";
@@ -66,11 +69,18 @@ const LoginScreen = ({ navigation }) => {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.keyboardView}
       >
+        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
         >
           <View style={styles.header}>
+            <Image
+              source={require("../../assets/logo.png")}
+              style={styles.logo}
+              resizeMode="contain"
+              accessibilityLabel="BinGo logo"
+            />
             <Text style={styles.title}>Welcome Back</Text>
             <Text style={styles.subtitle}>Sign in to your BinGo account</Text>
           </View>
@@ -142,6 +152,7 @@ const LoginScreen = ({ navigation }) => {
             </TouchableOpacity>
           </View>
         </ScrollView>
+        </TouchableWithoutFeedback>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -152,6 +163,7 @@ const styles = StyleSheet.create({
   keyboardView: { flex: 1 },
   scrollContent: { flexGrow: 1, padding: 24, justifyContent: "center" },
   header: { marginBottom: 32, alignItems: "center" },
+  logo: { width: 160, height: 60, marginBottom: 24 },
   title: { fontSize: 28, fontWeight: "bold", color: COLORS.TEXT_PRIMARY, marginBottom: 8 },
   subtitle: { fontSize: 15, color: COLORS.TEXT_SECONDARY },
   form: { gap: 16 },
