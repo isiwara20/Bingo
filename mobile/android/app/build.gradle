@@ -4,9 +4,10 @@ apply plugin: "com.facebook.react"
 
 react {
     // Root of your project (where package.json lives).
-    root = file("../")
+    // app/build.gradle is at mobile/android/app/, so ../../ reaches mobile/
+    root = file("../../")
     // React Native entry file
-    // entryFile = file("../index.js")
+    // entryFile = file("../../index.js")
 }
 
 def enableProguardInReleaseBuilds = false
