@@ -13,8 +13,8 @@
  * Make sure your phone and PC are on the same Wi-Fi network.
  */
 
-// Physical device: use LAN IP so the phone can reach the backend on your PC
-// Android emulator fallback: 10.0.2.2
+// Deployed backend — works from any network (phone, WiFi, mobile data)
+// Replace with your Railway/Render URL after deployment
 const API_BASE_URL =
   process.env.API_BASE_URL || "http://192.168.1.8:5000/api/v1";
 

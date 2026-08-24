@@ -30,7 +30,13 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../context/AuthContext";
 import { register, sendOtp } from "../services/authService";
 import COLORS from "../constants/colors";
-import Feather from "react-native-vector-icons/Feather";
+
+// Pure JS eye icon — no native dependency
+const EyeIcon = ({ visible }) => (
+  <Text style={{ fontSize: 17, color: COLORS.TEXT_SECONDARY }}>
+    {visible ? "🙈" : "👁"}
+  </Text>
+);
 
 // ── Role definitions ──────────────────────────────────────────────────────────
 const ROLES = [
@@ -102,11 +108,7 @@ const PasswordField = ({ label, error, inputRef, value, onChangeText, ...props }
           accessibilityRole="button"
           accessibilityLabel={visible ? "Hide password" : "Show password"}
         >
-          <Feather
-            name={visible ? "eye-off" : "eye"}
-            size={20}
-            color={COLORS.TEXT_SECONDARY}
-          />
+          <EyeIcon visible={visible} />
         </Pressable>
       </View>
       {error ? <Text style={styles.errorText}>{error}</Text> : null}
