@@ -2,12 +2,11 @@
  * BinGo – Login Screen
  *
  * US-02: As a user, I want to log in securely.
- *
- * Calls authService.login() and stores credentials via AuthContext.
- * TODO (Member 1): Implement remember me, biometric auth in Sprint 2.
+ * Includes admin login — admin users are routed to the same MainNavigator
+ * but see admin-only tabs based on their role.
  */
 
-import React, { useState } from "react";
+import React, { useRef, useState } from "react";
 import {
   View,
   Text,
@@ -20,13 +19,13 @@ import {
   ScrollView,
   Alert,
   Image,
-  Keyboard,
-  TouchableWithoutFeedback,
+  Pressable,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../context/AuthContext";
 import { login } from "../services/authService";
 import COLORS from "../constants/colors";
+import Feather from "react-native-vector-icons/Feather";
 
 const LoginScreen = ({ navigation }) => {
   const { login: storeAuth } = useAuth();
@@ -35,6 +34,9 @@ const LoginScreen = ({ navigation }) => {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [errors, setErrors] = useState({});
+  const [passwordVisible, setPasswordVisible] = useState(false);
+
+  const passwordRef = useRef(null);
 
   const validate = () => {
     const newErrors = {};
@@ -47,12 +49,10 @@ const LoginScreen = ({ navigation }) => {
 
   const handleLogin = async () => {
     if (!validate()) return;
-
     setLoading(true);
     try {
       const result = await login({ email: email.toLowerCase().trim(), password });
       await storeAuth(result.user, result.token);
-      // Navigation to Main is handled automatically by RootNavigator
     } catch (error) {
       Alert.alert(
         "Login Failed",
@@ -69,10 +69,10 @@ const LoginScreen = ({ navigation }) => {
         behavior={Platform.OS === "ios" ? "padding" : "height"}
         style={styles.keyboardView}
       >
-        <TouchableWithoutFeedback onPress={Keyboard.dismiss}>
         <ScrollView
           contentContainerStyle={styles.scrollContent}
           keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
         >
           <View style={styles.header}>
             <Image
@@ -97,6 +97,9 @@ const LoginScreen = ({ navigation }) => {
                 keyboardType="email-address"
                 autoCapitalize="none"
                 autoComplete="email"
+                returnKeyType="next"
+                blurOnSubmit={false}
+                onSubmitEditing={() => passwordRef.current?.focus()}
                 accessibilityLabel="Email Address"
               />
               {errors.email && <Text style={styles.errorText}>{errors.email}</Text>}
@@ -105,15 +108,34 @@ const LoginScreen = ({ navigation }) => {
             {/* Password */}
             <View style={styles.inputGroup}>
               <Text style={styles.label}>Password</Text>
-              <TextInput
-                style={[styles.input, errors.password && styles.inputError]}
-                placeholder="Your password"
-                value={password}
-                onChangeText={(t) => { setPassword(t); setErrors((e) => ({ ...e, password: null })); }}
-                secureTextEntry
-                autoComplete="password"
-                accessibilityLabel="Password"
-              />
+              <View style={[styles.passwordRow, errors.password && styles.inputError]}>
+                <TextInput
+                  ref={passwordRef}
+                  style={styles.passwordInput}
+                  placeholder="Your password"
+                  placeholderTextColor={COLORS.TEXT_DISABLED}
+                  value={password}
+                  onChangeText={(t) => { setPassword(t); setErrors((e) => ({ ...e, password: null })); }}
+                  secureTextEntry={!passwordVisible}
+                  autoComplete="password"
+                  returnKeyType="done"
+                  blurOnSubmit={true}
+                  onSubmitEditing={handleLogin}
+                  accessibilityLabel="Password"
+                />
+                <Pressable
+                  onPress={() => setPasswordVisible((v) => !v)}
+                  style={styles.eyeButton}
+                  accessibilityRole="button"
+                  accessibilityLabel={passwordVisible ? "Hide password" : "Show password"}
+                >
+                  <Feather
+                    name={passwordVisible ? "eye-off" : "eye"}
+                    size={20}
+                    color={COLORS.TEXT_SECONDARY}
+                  />
+                </Pressable>
+              </View>
               {errors.password && <Text style={styles.errorText}>{errors.password}</Text>}
             </View>
 
@@ -151,8 +173,12 @@ const LoginScreen = ({ navigation }) => {
               <Text style={styles.linkText}>Create one</Text>
             </TouchableOpacity>
           </View>
+
+          {/* Admin note */}
+          <Text style={styles.adminNote}>
+            Admin? Use your admin credentials above.
+          </Text>
         </ScrollView>
-        </TouchableWithoutFeedback>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
@@ -182,6 +208,27 @@ const styles = StyleSheet.create({
   inputError: { borderColor: COLORS.ERROR },
   errorText: { fontSize: 12, color: COLORS.ERROR },
   forgotText: { color: COLORS.PRIMARY, fontSize: 14, textAlign: "right" },
+  passwordRow: {
+    flexDirection: "row",
+    alignItems: "center",
+    backgroundColor: COLORS.SURFACE,
+    borderWidth: 1,
+    borderColor: COLORS.BORDER,
+    borderRadius: 10,
+  },
+  passwordInput: {
+    flex: 1,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    fontSize: 15,
+    color: COLORS.TEXT_PRIMARY,
+  },
+  eyeButton: {
+    paddingHorizontal: 14,
+    paddingVertical: 12,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   button: {
     backgroundColor: COLORS.PRIMARY,
     paddingVertical: 16,
@@ -194,6 +241,12 @@ const styles = StyleSheet.create({
   footer: { flexDirection: "row", justifyContent: "center", marginTop: 32 },
   footerText: { color: COLORS.TEXT_SECONDARY, fontSize: 14 },
   linkText: { color: COLORS.PRIMARY, fontSize: 14, fontWeight: "600" },
+  adminNote: {
+    textAlign: "center",
+    fontSize: 12,
+    color: COLORS.TEXT_DISABLED,
+    marginTop: 16,
+  },
 });
 
 export default LoginScreen;

@@ -1,14 +1,14 @@
 <?xml version="1.0" encoding="utf-8"?>
 <!--
   Debug-only network security config.
-  Allows cleartext HTTP to localhost and the Android emulator host (10.0.2.2)
-  so the app can reach the local Express backend during development.
+  Allows cleartext HTTP to ALL domains in debug builds.
   This file is NOT included in release builds.
 -->
 <network-security-config>
-    <domain-config cleartextTrafficPermitted="true">
-        <domain includeSubdomains="false">localhost</domain>
-        <domain includeSubdomains="false">10.0.2.2</domain>
-        <domain includeSubdomains="false">10.0.3.2</domain>
-    </domain-config>
+    <base-config cleartextTrafficPermitted="true">
+        <trust-anchors>
+            <certificates src="system" />
+            <certificates src="user" />
+        </trust-anchors>
+    </base-config>
 </network-security-config>

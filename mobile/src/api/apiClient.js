@@ -38,7 +38,7 @@ api.interceptors.request.use(
     }
 
     if (__DEV__) {
-      console.log(`[API] ${config.method?.toUpperCase()} ${config.url}`);
+      console.log(`[API] ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`);
     }
 
     return config;
