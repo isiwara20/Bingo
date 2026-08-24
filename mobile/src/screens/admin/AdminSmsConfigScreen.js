@@ -12,12 +12,15 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import api from "../../api/apiClient";
+import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import COLORS from "../../constants/colors";
 
 const EyeIcon = ({ visible }) => (
-  <Text style={{ fontSize: 16, color: COLORS.TEXT_SECONDARY }}>
-    {visible ? "🙈" : "👁"}
-  </Text>
+  <Icon
+    name={visible ? "eye-off-outline" : "eye-outline"}
+    size={22}
+    color={COLORS.TEXT_SECONDARY}
+  />
 );
 
 const Field = ({ label, hint, error, secret, inputRef, ...props }) => {

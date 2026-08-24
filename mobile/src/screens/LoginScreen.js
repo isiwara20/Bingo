@@ -13,13 +13,15 @@ import {
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useAuth } from "../context/AuthContext";
 import { login } from "../services/authService";
+import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import COLORS from "../constants/colors";
 
-// Pure JS eye icon — no native dependency
 const EyeIcon = ({ visible }) => (
-  <Text style={{ fontSize: 17, color: COLORS.TEXT_SECONDARY }}>
-    {visible ? "🙈" : "👁"}
-  </Text>
+  <Icon
+    name={visible ? "eye-off-outline" : "eye-outline"}
+    size={22}
+    color={COLORS.TEXT_SECONDARY}
+  />
 );
 
 const LoginScreen = ({ navigation }) => {
