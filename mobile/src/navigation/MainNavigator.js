@@ -88,6 +88,9 @@ const HomeStack = () => (
     <Stack.Screen name="Rewards"       component={RewardsScreen} />
     <Stack.Screen name="Payment"       component={PaymentScreen} />
     <Stack.Screen name="Settings"      component={SettingsScreen} />
+    {/* Member 3 – accessible from Home quick actions */}
+    <Stack.Screen name="Schedule"      component={CollectionScheduleScreen} />
+    <Stack.Screen name="Recycling"     component={RecyclingGuideScreen} />
   </Stack.Navigator>
 );
 

@@ -1,0 +1,15 @@
+/**
+ * BinGo – Schedule Service (Member 3)
+ */
+import api from "../api/apiClient";
+
+export const getSchedules = async (area = "") => {
+  const params = area ? { area } : {};
+  const res = await api.get("/schedules", { params });
+  return res.data.data;
+};
+
+export const getScheduleById = async (id) => {
+  const res = await api.get(`/schedules/${id}`);
+  return res.data.data;
+};
