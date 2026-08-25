@@ -1,5 +1,6 @@
 /**
  * BinGo – Collection Schedule Screen (Member 3)
+ * Accessible by: resident
  * Tabs: Today | Upcoming | Calendar | History
  */
 import React, { useState, useEffect, useCallback } from "react";

@@ -22,22 +22,25 @@ import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 
 import COLORS from "../constants/colors";
+import { useAuth } from "../context/AuthContext";
 
 // ── Screens ───────────────────────────────────────────────────────────────
-import HomeScreen              from "../screens/HomeScreen";
-import ReportWasteScreen       from "../screens/ReportWasteScreen";
-import ReportReviewScreen      from "../screens/ReportReviewScreen";
-import ReportDetailsScreen     from "../screens/ReportDetailsScreen";
-import ReportStatusScreen      from "../screens/ReportStatusScreen";
-import WasteMapScreen          from "../screens/WasteMapScreen";
-import CollectionScheduleScreen from "../screens/CollectionScheduleScreen";
-import RecyclingGuideScreen    from "../screens/RecyclingGuideScreen";
-import CommunityScreen         from "../screens/CommunityScreen";
-import NotificationsScreen     from "../screens/NotificationsScreen";
-import RewardsScreen           from "../screens/RewardsScreen";
-import ProfileScreen           from "../screens/ProfileScreen";
-import SettingsScreen          from "../screens/SettingsScreen";
-import PaymentScreen           from "../screens/PaymentScreen";
+import HomeScreen                  from "../screens/HomeScreen";
+import ReportWasteScreen           from "../screens/ReportWasteScreen";
+import ReportReviewScreen          from "../screens/ReportReviewScreen";
+import ReportDetailsScreen         from "../screens/ReportDetailsScreen";
+import ReportStatusScreen          from "../screens/ReportStatusScreen";
+import WasteMapScreen              from "../screens/WasteMapScreen";
+import CollectionScheduleScreen    from "../screens/CollectionScheduleScreen";
+import ScheduleManagementScreen    from "../screens/ScheduleManagementScreen";
+import ScheduleFormScreen          from "../screens/ScheduleFormScreen";
+import RecyclingGuideScreen        from "../screens/RecyclingGuideScreen";
+import CommunityScreen             from "../screens/CommunityScreen";
+import NotificationsScreen         from "../screens/NotificationsScreen";
+import RewardsScreen               from "../screens/RewardsScreen";
+import ProfileScreen               from "../screens/ProfileScreen";
+import SettingsScreen              from "../screens/SettingsScreen";
+import PaymentScreen               from "../screens/PaymentScreen";
 
 const Tab   = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -81,18 +84,23 @@ const ReportFAB = ({ onPress }) => (
 
 // ── Stack navigators ──────────────────────────────────────────────────────
 
-const HomeStack = () => (
-  <Stack.Navigator screenOptions={{ headerShown: false }}>
-    <Stack.Screen name="HomeMain"      component={HomeScreen} />
-    <Stack.Screen name="Notifications" component={NotificationsScreen} />
-    <Stack.Screen name="Rewards"       component={RewardsScreen} />
-    <Stack.Screen name="Payment"       component={PaymentScreen} />
-    <Stack.Screen name="Settings"      component={SettingsScreen} />
-    {/* Member 3 – accessible from Home quick actions */}
-    <Stack.Screen name="Schedule"      component={CollectionScheduleScreen} />
-    <Stack.Screen name="Recycling"     component={RecyclingGuideScreen} />
-  </Stack.Navigator>
-);
+const HomeStack = () => {
+  const { user } = useAuth();
+  const isAuthority = ["admin", "waste_authority"].includes(user?.role);
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="HomeMain"      component={HomeScreen} />
+      <Stack.Screen name="Notifications" component={NotificationsScreen} />
+      <Stack.Screen name="Rewards"       component={RewardsScreen} />
+      <Stack.Screen name="Payment"       component={PaymentScreen} />
+      <Stack.Screen name="Settings"      component={SettingsScreen} />
+      {/* Member 3 – role-based schedule screen */}
+      <Stack.Screen name="Schedule"      component={isAuthority ? ScheduleManagementScreen : CollectionScheduleScreen} />
+      <Stack.Screen name="ScheduleForm"  component={ScheduleFormScreen} />
+      <Stack.Screen name="Recycling"     component={RecyclingGuideScreen} />
+    </Stack.Navigator>
+  );
+};
 
 const ReportStack = () => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>
@@ -116,16 +124,21 @@ const AlertsStack = () => (
   </Stack.Navigator>
 );
 
-const ProfileStack = () => (
-  <Stack.Navigator screenOptions={{ headerShown: false }}>
-    <Stack.Screen name="ProfileMain"   component={ProfileScreen} />
-    <Stack.Screen name="Settings"      component={SettingsScreen} />
-    <Stack.Screen name="Schedule"      component={CollectionScheduleScreen} />
-    <Stack.Screen name="Recycling"     component={RecyclingGuideScreen} />
-    <Stack.Screen name="Community"     component={CommunityScreen} />
-    <Stack.Screen name="Rewards"       component={RewardsScreen} />
-  </Stack.Navigator>
-);
+const ProfileStack = () => {
+  const { user } = useAuth();
+  const isAuthority = ["admin", "waste_authority"].includes(user?.role);
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="ProfileMain"   component={ProfileScreen} />
+      <Stack.Screen name="Settings"      component={SettingsScreen} />
+      <Stack.Screen name="Schedule"      component={isAuthority ? ScheduleManagementScreen : CollectionScheduleScreen} />
+      <Stack.Screen name="ScheduleForm"  component={ScheduleFormScreen} />
+      <Stack.Screen name="Recycling"     component={RecyclingGuideScreen} />
+      <Stack.Screen name="Community"     component={CommunityScreen} />
+      <Stack.Screen name="Rewards"       component={RewardsScreen} />
+    </Stack.Navigator>
+  );
+};
 
 // ── Main Tab Navigator ────────────────────────────────────────────────────
 const MainNavigator = () => {
