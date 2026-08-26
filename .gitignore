@@ -84,3 +84,6 @@ tmp/
 temp/
 *.tmp
 *.temp
+
+# API Keys and secrets
+mobile/src/config/keys.js

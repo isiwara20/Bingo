@@ -380,6 +380,19 @@ const ExploreTab = ({ guides, navigation, onTrack, progress }) => {
         </View>
       </View>
 
+      {/* AI Recycling Assistant banner */}
+      <TouchableOpacity style={S.aiBanner} onPress={() => navigation.navigate("WasteScan")}
+        accessibilityRole="button" accessibilityLabel="AI Recycling Assistant">
+        <View style={S.aiBannerLeft}>
+          <Text style={S.aiBannerEmoji}>🤖</Text>
+          <View>
+            <Text style={S.aiBannerTitle}>AI Recycling Assistant</Text>
+            <Text style={S.aiBannerSub}>Scan or type any item — AI tells you how to dispose it</Text>
+          </View>
+        </View>
+        <Text style={S.aiBannerArrow}>→</Text>
+      </TouchableOpacity>
+
       {/* Category grid with explore indicators */}
       <View style={S.catSectionHeader}>
         <Text style={S.sectionLabel}>Explore Categories</Text>
@@ -892,6 +905,13 @@ const S = StyleSheet.create({
   factEmoji:        { fontSize: 24, marginBottom: 8 },
   factTxt:          { fontSize: 12, color: COLORS.TEXT_PRIMARY, lineHeight: 17 },
   // ── NEW EXPLORE STYLES ──────────────────────────────────────────────────
+  // AI Banner
+  aiBanner:         { flexDirection: "row", alignItems: "center", backgroundColor: "#1E1B4B", borderRadius: 16, padding: 14, marginBottom: 14, elevation: 3 },
+  aiBannerLeft:     { flexDirection: "row", alignItems: "center", gap: 10, flex: 1 },
+  aiBannerEmoji:    { fontSize: 28 },
+  aiBannerTitle:    { fontSize: 14, fontWeight: "800", color: "#fff" },
+  aiBannerSub:      { fontSize: 11, color: "rgba(255,255,255,0.7)", marginTop: 2 },
+  aiBannerArrow:    { fontSize: 20, color: "#fff", fontWeight: "700" },
   exploreHero:      { borderRadius: 20, overflow: "hidden", marginBottom: 14, elevation: 4 },
   exploreHeroBg:    { ...StyleSheet.absoluteFillObject, backgroundColor: COLORS.PRIMARY },
   exploreHeroContent:{ padding: 20, paddingBottom: 18 },
