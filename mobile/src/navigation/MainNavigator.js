@@ -38,6 +38,7 @@ import CollectionDashboardScreen   from "../screens/CollectionDashboardScreen";
 import AlertManagementScreen       from "../screens/AlertManagementScreen";
 import SetReminderScreen           from "../screens/SetReminderScreen";
 import RecyclingGuideScreen        from "../screens/RecyclingGuideScreen";
+import RecyclingCategoryScreen     from "../screens/RecyclingCategoryScreen";
 import CommunityScreen             from "../screens/CommunityScreen";
 import NotificationsScreen         from "../screens/NotificationsScreen";
 import RewardsScreen               from "../screens/RewardsScreen";
@@ -103,7 +104,8 @@ const HomeStack = () => {
       {/* Member 3 – Feature 2: set reminder (resident) / alert management (authority) */}
       <Stack.Screen name="SetReminder"   component={SetReminderScreen} />
       <Stack.Screen name="CollectionDashboard" component={isAuthority ? AlertManagementScreen : CollectionDashboardScreen} />
-      <Stack.Screen name="Recycling"     component={RecyclingGuideScreen} />
+      <Stack.Screen name="Recycling"          component={RecyclingGuideScreen} />
+      <Stack.Screen name="RecyclingCategory"  component={RecyclingCategoryScreen} />
     </Stack.Navigator>
   );
 };
