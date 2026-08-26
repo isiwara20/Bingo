@@ -79,14 +79,6 @@ const QUICK_ACTIONS = [
     description: "Recycling guide",
     color: COLORS.PRIMARY,
   },
-  {
-    id: "progress",
-    label: "My Progress",
-    emoji: "🏆",
-    screen: "RecyclingProgress",
-    description: "Your eco journey",
-    color: "#D97706",
-  },
 ];
 
 // ── Sub-components ─────────────────────────────────────────────────────────

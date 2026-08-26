@@ -194,7 +194,7 @@ const STORIES = [
 ];
 
 // ── Tab labels ────────────────────────────────────────────────────────────
-const TABS = ["Explore","Learn","Detective","Stories","Passport"];
+const TABS = ["Explore","Learn","Detective","Stories","My Progress"];
 
 export default function RecyclingGuideScreen({ navigation }) {
   const { user } = useAuth();
@@ -230,7 +230,7 @@ export default function RecyclingGuideScreen({ navigation }) {
       case "Learn":     return <LearnTab     guides={guides} onTrack={trackProgress} progress={progress} />;
       case "Detective": return <DetectiveTab onTrack={trackProgress} />;
       case "Stories":   return <StoriesTab   progress={progress} onTrack={trackProgress} />;
-      case "Passport":  return <PassportTab  progress={progress} guides={guides} user={user} />;
+      case "My Progress": return <MyProgressTab progress={progress} user={user} guides={guides} navigation={navigation} setActiveTab={setActiveTab} />;
       default: return null;
     }
   };
@@ -754,104 +754,326 @@ const StoriesTab = ({ progress, onTrack }) => {
   );
 };
 
-// ── PASSPORT TAB ──────────────────────────────────────────────────────────
-const PassportTab = ({ progress, guides, user }) => {
-  const totalCats      = Object.keys(CAT_CONFIG).length;
-  const exploredCats   = progress?.categoriesExplored?.length || 0;
-  const savedCount     = progress?.savedGuides?.length || 0;
-  const storiesDone    = progress?.completedStories?.length || 0;
-  const detectivePlayed= progress?.detectiveCasesPlayed || 0;
-  const detectiveCorrect= progress?.detectiveCasesCorrect || 0;
-  const totalScore     = progress?.totalScore || 0;
+// ── MY PROGRESS TAB ────────────────────────────────────────────────────────
+const LEVELS = [
+  { min: 0,   max: 49,  label: "Eco Beginner",  emoji: "🌱", color: "#6B7280", next: 50  },
+  { min: 50,  max: 149, label: "Eco Learner",   emoji: "📗", color: "#16A34A", next: 150 },
+  { min: 150, max: 299, label: "Eco Explorer",  emoji: "🌍", color: "#2D5016", next: 300 },
+  { min: 300, max: 499, label: "Eco Champion",  emoji: "🏆", color: "#D97706", next: 500 },
+  { min: 500, max: Infinity, label: "Eco Master", emoji: "⭐", color: "#7C3AED", next: null },
+];
 
-  const level = totalScore < 50 ? "Eco Beginner 🌱"
-              : totalScore < 150 ? "Eco Learner 📗"
-              : totalScore < 300 ? "Eco Explorer 🌍"
-              : "Eco Champion 🏆";
+const getLevel = (score) => LEVELS.find(l => score >= l.min && score <= l.max) || LEVELS[0];
 
-  const levelColor = totalScore < 50 ? "#6B7280"
-                   : totalScore < 150 ? "#16A34A"
-                   : totalScore < 300 ? "#2D5016"
-                   : "#D97706";
+const ACHIEVEMENTS = [
+  { id: "first_explore",   label: "First Steps",         emoji: "👣", desc: "Explored your first category",    check: (p) => p?.categoriesExplored?.length >= 1 },
+  { id: "all_categories",  label: "Category Master",      emoji: "📚", desc: "Explored all 7 categories",       check: (p) => p?.categoriesExplored?.length >= 7 },
+  { id: "first_story",     label: "Storyteller",          emoji: "📖", desc: "Completed your first story",      check: (p) => p?.completedStories?.length >= 1 },
+  { id: "all_stories",     label: "Story Champion",       emoji: "📚", desc: "Completed 5 stories",             check: (p) => p?.completedStories?.length >= 5 },
+  { id: "detective_5",     label: "Junior Detective",     emoji: "🔍", desc: "Played 5 detective cases",        check: (p) => p?.detectiveCasesPlayed >= 5 },
+  { id: "detective_ace",   label: "Detective Ace",        emoji: "🕵️", desc: "Got 10 correct answers",         check: (p) => p?.detectiveCasesCorrect >= 10 },
+  { id: "score_100",       label: "Century Scorer",       emoji: "💯", desc: "Earned 100 points",              check: (p) => p?.totalScore >= 100 },
+  { id: "score_500",       label: "Point Legend",         emoji: "🌟", desc: "Earned 500 points",              check: (p) => p?.totalScore >= 500 },
+  { id: "saver_1",         label: "Guide Saver",          emoji: "🔖", desc: "Saved your first guide",         check: (p) => p?.savedGuides?.length >= 1 },
+  { id: "saver_5",         label: "Library Builder",      emoji: "📕", desc: "Saved 5 guides to library",      check: (p) => p?.savedGuides?.length >= 5 },
+];
 
-  const progressPct = Math.min(100, (exploredCats / totalCats) * 100);
+const MyProgressTab = ({ progress, user, guides, navigation, setActiveTab }) => {
+  const progressAnim = React.useRef(new Animated.Value(0)).current;
+  const barAnim = React.useRef(new Animated.Value(0)).current;
+
+  React.useEffect(() => {
+    const pct = progress?.totalScore ? Math.min(1, (progress.totalScore % 150) / 150) : 0;
+    Animated.timing(progressAnim, { toValue: pct, duration: 1000, useNativeDriver: false }).start();
+    Animated.timing(barAnim, { toValue: 1, duration: 1200, useNativeDriver: false }).start();
+  }, [progress]);
+
+  const score  = progress?.totalScore || 0;
+  const level  = getLevel(score);
+  const nextPts = level.next ? level.next - score : 0;
+  const pct    = level.next ? Math.min(100, ((score - level.min) / (level.next - level.min)) * 100) : 100;
+
+  const unlocked = ACHIEVEMENTS.filter(a => a.check(progress));
+  const locked   = ACHIEVEMENTS.filter(a => !a.check(progress));
+
+  // Activity data for bar chart
+  const activityData = [
+    { label: "Explore", value: progress?.categoriesExplored?.length || 0, max: 7, color: "#3B82F6" },
+    { label: "Stories", value: progress?.completedStories?.length || 0, max: 10, color: "#F59E0B" },
+    { label: "Detective", value: progress?.detectiveCasesPlayed || 0, max: 20, color: "#06B6D4" },
+    { label: "Saved", value: progress?.savedGuides?.length || 0, max: 15, color: "#8B5CF6" },
+  ];
+
+  // Weekly progress data (AI scans - simulated based on total score)
+  const weeklyData = [
+    { day: "Mon", value: Math.floor(score * 0.15) },
+    { day: "Tue", value: Math.floor(score * 0.20) },
+    { day: "Wed", value: Math.floor(score * 0.25) },
+    { day: "Thu", value: Math.floor(score * 0.18) },
+    { day: "Fri", value: Math.floor(score * 0.12) },
+    { day: "Sat", value: Math.floor(score * 0.08) },
+    { day: "Sun", value: Math.floor(score * 0.02) },
+  ];
+
+  const maxWeeklyScans = Math.max(...weeklyData.map(d => d.value), 1);
+
+  // Activity trend data (points earned over time)
+  const trendData = [
+    { label: "Week 1", value: Math.floor(score * 0.15) },
+    { label: "Week 2", value: Math.floor(score * 0.20) },
+    { label: "Week 3", value: Math.floor(score * 0.30) },
+    { label: "Week 4", value: Math.floor(score * 0.35) },
+  ];
+  const maxTrendValue = Math.max(...trendData.map(d => d.value), 1);
 
   return (
-    <View style={S.tabContent}>
-      {/* Passport header */}
-      <View style={S.passportCard}>
-        <View style={S.passportAvatarWrap}>
-          <Text style={S.passportAvatar}>👤</Text>
-        </View>
-        <View style={S.passportInfo}>
-          <Text style={S.passportName}>{user?.name || "Eco Learner"}</Text>
-          <View style={[S.passportLevel, { backgroundColor: "rgba(255,255,255,0.25)" }]}>
-            <Text style={[S.passportLevelTxt, { color: "#fff" }]}>{level}</Text>
+    <View style={S.progressTabContent}>
+      {/* Profile card */}
+      <View style={[S.progressProfileCard, { backgroundColor: level.color }]}>
+        <View style={S.progressProfileTop}>
+          <View style={S.progressAvatar}><Text style={S.progressAvatarTxt}>👤</Text></View>
+          <View style={S.progressProfileInfo}>
+            <Text style={S.progressProfileName}>{user?.name || "Eco Learner"}</Text>
+            <View style={S.progressLevelBadge}>
+              <Text style={S.progressLevelEmoji}>{level.emoji}</Text>
+              <Text style={S.progressLevelLabel}>{level.label}</Text>
+            </View>
           </View>
-          <Text style={S.passportMsg}>Knowledge grows, planet glows 🌿</Text>
+          <View style={S.progressScoreBox}>
+            <Text style={S.progressScoreNum}>{score}</Text>
+            <Text style={S.progressScoreLbl}>pts</Text>
+          </View>
         </View>
-        <View style={S.passportScore}>
-          <Text style={S.passportScoreNum}>{totalScore}</Text>
-          <Text style={S.passportScoreLbl}>pts</Text>
+        {/* XP Bar */}
+        <View style={S.progressXpSection}>
+          <View style={S.progressXpBarBg}>
+            <Animated.View style={[S.progressXpBarFill, {
+              width: progressAnim.interpolate({ inputRange: [0,1], outputRange: ["0%","100%"] }),
+            }]} />
+          </View>
+          <Text style={S.progressXpLabel}>
+            {level.next ? `${nextPts} pts to ${LEVELS[LEVELS.indexOf(level) + 1]?.label}` : "Max level reached! 🎉"}
+          </Text>
         </View>
-      </View>
-
-      {/* Progress bar */}
-      <View style={S.progressCard}>
-        <Text style={S.progressCardTitle}>Categories Explored</Text>
-        <View style={S.progressBarWrap}>
-          <View style={[S.progressBarFill, { width: `${progressPct}%` }]} />
-        </View>
-        <Text style={S.progressBarLabel}>{exploredCats} of {totalCats} categories</Text>
       </View>
 
       {/* Stats grid */}
-      <Text style={S.sectionLabel}>My Progress</Text>
-      <View style={S.statsGrid}>
+      <Text style={S.progressSectionLabel}>My Impact</Text>
+      <View style={S.progressStatsGrid}>
         {[
-          { label: "Categories Explored", value: exploredCats, emoji: "📚", color: "#3B82F6" },
-          { label: "Guides Saved",         value: savedCount,  emoji: "🔖", color: "#8B5CF6" },
-          { label: "Stories Completed",    value: storiesDone, emoji: "📖", color: "#F59E0B" },
-          { label: "Detective Cases",       value: detectivePlayed, emoji: "🔍", color: "#06B6D4" },
-          { label: "Correct Answers",       value: detectiveCorrect, emoji: "✓", color: "#16A34A" },
-          { label: "Total Points",          value: totalScore,  emoji: "⭐", color: "#D97706" },
+          { label: "Categories Explored",  value: progress?.categoriesExplored?.length || 0, emoji: "📚", color: "#3B82F6" },
+          { label: "Guides Saved",          value: progress?.savedGuides?.length || 0,         emoji: "🔖", color: "#8B5CF6" },
+          { label: "Stories Completed",     value: progress?.completedStories?.length || 0,    emoji: "📖", color: "#F59E0B" },
+          { label: "Detective Cases",       value: progress?.detectiveCasesPlayed || 0,         emoji: "🔍", color: "#06B6D4" },
+          { label: "Correct Answers",       value: progress?.detectiveCasesCorrect || 0,        emoji: "✓",  color: "#16A34A" },
+          { label: "Total Points",          value: score,                                        emoji: "⭐", color: "#D97706" },
         ].map((s, i) => (
-          <View key={i} style={[S.statGridCard, { borderTopColor: s.color }]}>
+          <View key={i} style={[S.progressStatCard, { borderTopColor: s.color }]}>
             <Text style={{ fontSize: 22 }}>{s.emoji}</Text>
-            <Text style={[S.statGridNum, { color: s.color }]}>{s.value}</Text>
-            <Text style={S.statGridLbl}>{s.label}</Text>
+            <Text style={[S.progressStatNum, { color: s.color }]}>{s.value}</Text>
+            <Text style={S.progressStatLbl}>{s.label}</Text>
           </View>
         ))}
       </View>
 
+      {/* Activity Bar Chart */}
+      <Text style={S.progressSectionLabel}>Activity Overview</Text>
+      <View style={[S.progressChartCard, { marginHorizontal: 24 }]}>
+        <Text style={S.progressChartTitle}>Your Learning Activity</Text>
+        <View style={S.progressChartBars}>
+          {activityData.map((item, i) => {
+            const percentage = Math.min(100, (item.value / item.max) * 100);
+            return (
+              <View key={i} style={S.progressChartBarRow}>
+                <Text style={S.progressChartBarLabel}>{item.label}</Text>
+                <View style={S.progressChartBarTrack}>
+                  <Animated.View
+                    style={[
+                      S.progressChartBarFill,
+                      {
+                        width: barAnim.interpolate({
+                          inputRange: [0, 1],
+                          outputRange: ["0%", `${percentage}%`],
+                        }),
+                        backgroundColor: item.color,
+                      },
+                    ]}
+                  />
+                </View>
+                <Text style={S.progressChartBarValue}>{item.value}/{item.max}</Text>
+              </View>
+            );
+          })}
+        </View>
+      </View>
+
+      {/* Weekly Progress Chart */}
+      <Text style={S.progressSectionLabel}>Weekly Progress</Text>
+      <View style={[S.progressChartCard, { marginHorizontal: 24 }]}>
+        <Text style={S.progressChartTitle}>AI Scans This Week</Text>
+        <View style={S.progressLineChart}>
+          <View style={S.progressLineChartBars}>
+            {weeklyData.map((item, i) => {
+              const barHeight = barAnim.interpolate({
+                inputRange: [0, 1],
+                outputRange: [0, Math.max(10, (item.value / maxWeeklyScans) * 80)],
+              });
+              return (
+                <View key={i} style={S.progressLineChartBarCol}>
+                  <Animated.View
+                    style={[
+                      S.progressLineChartBar,
+                      {
+                        height: barHeight,
+                        backgroundColor: i === 2 ? COLORS.PRIMARY : COLORS.PRIMARY + "80",
+                      },
+                    ]}
+                  />
+                  <Text style={S.progressLineChartLabel}>{item.day}</Text>
+                  <Text style={S.progressLineChartValue}>{item.value}</Text>
+                </View>
+              );
+            })}
+          </View>
+        </View>
+      </View>
+
+      {/* Activity Trend Line Chart */}
+      <Text style={S.progressSectionLabel}>Activity Trend</Text>
+      <View style={[S.progressChartCard, { marginHorizontal: 24 }]}>
+        <Text style={S.progressChartTitle}>Points Earned Over Time</Text>
+        <View style={S.progressTrendChart}>
+          <View style={S.progressTrendLineContainer}>
+            {trendData.map((item, i) => {
+              const x = (i / (trendData.length - 1)) * 260 + 20;
+              const y = 100 - ((item.value / maxTrendValue) * 70 + 15);
+              const prevX = i > 0 ? ((i - 1) / (trendData.length - 1)) * 260 + 20 : x;
+              const prevY = i > 0 ? 100 - ((trendData[i - 1].value / maxTrendValue) * 70 + 15) : y;
+              const lineLength = Math.sqrt(Math.pow(x - prevX, 2) + Math.pow(y - prevY, 2));
+              const angle = Math.atan2(y - prevY, x - prevX) * (180 / Math.PI);
+
+              return (
+                <React.Fragment key={i}>
+                  {i > 0 && (
+                    <Animated.View
+                      style={[
+                        S.progressTrendLine,
+                        {
+                          left: prevX,
+                          top: prevY,
+                          width: lineLength,
+                          transform: [{ rotate: `${angle}deg` }],
+                        },
+                      ]}
+                    />
+                  )}
+                  <View style={[S.progressTrendPoint, { left: x - 6, top: y - 6 }]}>
+                    <Text style={S.progressTrendPointValue}>{item.value}</Text>
+                  </View>
+                  <Text style={[S.progressTrendLabel, { left: x - 15, top: y + 15, position: "absolute" }]}>{item.label}</Text>
+                </React.Fragment>
+              );
+            })}
+          </View>
+        </View>
+      </View>
+
+      {/* Category progress */}
+      <Text style={S.progressSectionLabel}>Categories Explored</Text>
+      <View style={S.progressCatCard}>
+        {["Plastic","Glass","Paper","Metal","Organic","E-Waste","Hazardous"].map((cat, i) => {
+          const explored = progress?.categoriesExplored?.includes(cat);
+          const catColors = ["#3B82F6","#8B5CF6","#F59E0B","#6B7280","#16A34A","#DC2626","#D97706"];
+          const catEmojis = ["🧴","🍶","📄","🥫","🌿","📱","⚠️"];
+          return (
+            <View key={i} style={S.progressCatRow}>
+              <Text style={{ fontSize: 20, width: 28 }}>{catEmojis[i]}</Text>
+              <Text style={[S.progressCatName, !explored && { color: COLORS.TEXT_DISABLED }]}>{cat}</Text>
+              <View style={[S.progressCatPill, { backgroundColor: explored ? catColors[i] + "20" : COLORS.BORDER }]}>
+                <Text style={[S.progressCatPillTxt, { color: explored ? catColors[i] : COLORS.TEXT_DISABLED }]}>
+                  {explored ? "✓ Explored" : "Not yet"}
+                </Text>
+              </View>
+            </View>
+          );
+        })}
+      </View>
+
+      {/* Achievements */}
+      <Text style={S.progressSectionLabel}>Achievements ({unlocked.length}/{ACHIEVEMENTS.length})</Text>
+
+      {unlocked.length > 0 && (
+        <>
+          <Text style={S.achievementSubLabel}>Unlocked 🎉</Text>
+          <View style={S.progressAchievementsGrid}>
+            {unlocked.map((a) => (
+              <View key={a.id} style={[S.progressAchievementCard, S.progressAchievementUnlocked]}>
+                <Text style={S.progressAchievementEmoji}>{a.emoji}</Text>
+                <Text style={S.progressAchievementLabel}>{a.label}</Text>
+                <Text style={S.progressAchievementDesc}>{a.desc}</Text>
+              </View>
+            ))}
+          </View>
+        </>
+      )}
+
+      {locked.length > 0 && (
+        <>
+          <Text style={S.achievementSubLabel}>Locked 🔒</Text>
+          <View style={S.progressAchievementsGrid}>
+            {locked.map((a) => (
+              <View key={a.id} style={[S.progressAchievementCard, S.progressAchievementLocked]}>
+                <Text style={[S.progressAchievementEmoji, { opacity: 0.3 }]}>{a.emoji}</Text>
+                <Text style={[S.progressAchievementLabel, { color: COLORS.TEXT_DISABLED }]}>{a.label}</Text>
+                <Text style={S.progressAchievementDesc}>{a.desc}</Text>
+              </View>
+            ))}
+          </View>
+        </>
+      )}
+
       {/* My Library */}
-      <Text style={S.sectionLabel}>My Library</Text>
-      {savedCount === 0 ? (
-        <View style={S.emptyLibrary}>
+      <Text style={S.progressSectionLabel}>My Library</Text>
+      {progress?.savedGuides?.length === 0 ? (
+        <View style={[S.emptyLibrary, { marginHorizontal: 24 }]}>
           <Text style={{ fontSize: 32 }}>🔖</Text>
           <Text style={S.emptyLibraryTxt}>No saved guides yet. Tap "Save Guide" while learning!</Text>
         </View>
       ) : (
-        <View style={S.libraryCard}>
-          <Text style={S.libraryCardTitle}>Saved Guides · {savedCount} items</Text>
-          {guides.filter(g => progress?.savedGuides?.includes(g._id)).map((g, i) => {
+        <View style={[S.libraryCard, { marginHorizontal: 24 }]}>
+          <Text style={S.libraryCardTitle}>Saved Guides · {progress?.savedGuides?.length || 0} items</Text>
+          {guides?.filter(g => progress?.savedGuides?.includes(g._id)).map((g, i) => {
             const cfg = getCat(g.category);
             return (
-              <View key={i} style={[S.libraryItem, i > 0 && S.libraryItemBorder]}>
+              <TouchableOpacity
+                key={i}
+                style={[S.libraryItem, i > 0 && S.libraryItemBorder]}
+                onPress={() => {
+                  setActiveTab("Learn");
+                }}
+                accessibilityRole="button"
+                accessibilityLabel={`Open ${g.title}`}
+              >
                 <Text style={{ fontSize: 18 }}>{cfg.emoji}</Text>
                 <View style={{ flex: 1, marginLeft: 10 }}>
                   <Text style={S.libraryItemTitle}>{g.title}</Text>
                   <Text style={[S.libraryItemCat, { color: cfg.color }]}>{g.category}</Text>
                 </View>
-              </View>
+              </TouchableOpacity>
             );
           })}
         </View>
       )}
 
-      {/* Continue learning prompt */}
-      <View style={[S.continueCard, { backgroundColor: COLORS.PRIMARY }]}>
-        <Text style={S.continueTxt}>🌱 Keep going! Explore more categories to level up.</Text>
+      {/* Motivational footer */}
+      <View style={[S.progressMotivCard, { backgroundColor: COLORS.PRIMARY }]}>
+        <Text style={S.progressMotivEmoji}>🌱</Text>
+        <Text style={S.progressMotivTxt}>
+          {score === 0 ? "Start exploring to earn your first points!" :
+           score < 50 ? "Great start! Keep exploring categories." :
+           score < 150 ? "You're making a real difference!" :
+           "You're an eco champion. Keep it up! 🏆"}
+        </Text>
       </View>
     </View>
   );
@@ -1067,12 +1289,71 @@ const S = StyleSheet.create({
   statGridLbl:      { fontSize: 9, color: COLORS.TEXT_SECONDARY, textAlign: "center", marginTop: 2 },
   emptyLibrary:     { alignItems: "center", padding: 24, backgroundColor: COLORS.SURFACE, borderRadius: 14, borderWidth: 1, borderColor: COLORS.BORDER, gap: 8 },
   emptyLibraryTxt:  { fontSize: 13, color: COLORS.TEXT_SECONDARY, textAlign: "center" },
-  libraryCard:      { backgroundColor: COLORS.SURFACE, borderRadius: 14, marginBottom: 12, borderWidth: 1, borderColor: COLORS.BORDER, overflow: "hidden" },
-  libraryCardTitle: { fontSize: 12, fontWeight: "800", color: COLORS.TEXT_SECONDARY, textTransform: "uppercase", letterSpacing: 0.8, padding: 12, paddingBottom: 8 },
-  libraryItem:      { flexDirection: "row", alignItems: "center", paddingHorizontal: 12, paddingVertical: 10 },
+  libraryCard:      { backgroundColor: COLORS.SURFACE, borderRadius: 14, padding: 14, marginBottom: 12, borderWidth: 1, borderColor: COLORS.BORDER },
+  libraryCardTitle: { fontSize: 12, fontWeight: "700", color: COLORS.TEXT_SECONDARY, marginBottom: 10 },
+  libraryItem:      { flexDirection: "row", alignItems: "center", paddingVertical: 8 },
   libraryItemBorder:{ borderTopWidth: 1, borderTopColor: COLORS.DIVIDER },
   libraryItemTitle: { fontSize: 13, fontWeight: "600", color: COLORS.TEXT_PRIMARY },
-  libraryItemCat:   { fontSize: 11, marginTop: 1 },
-  continueCard:     { borderRadius: 14, padding: 14, alignItems: "center", marginBottom: 4 },
-  continueTxt:      { color: "#fff", fontSize: 13, fontWeight: "600" },
+  libraryItemCat:   { fontSize: 11, color: COLORS.TEXT_SECONDARY, marginTop: 2 },
+  continueCard:     { borderRadius: 14, padding: 14, marginBottom: 4 },
+  continueTxt:      { color: "#fff", fontSize: 13, fontWeight: "600", lineHeight: 18 },
+  // My Progress Tab styles
+  progressTabContent: { paddingTop: 14 },
+  progressSectionLabel: { fontSize: 11, fontWeight: "800", color: COLORS.TEXT_SECONDARY, textTransform: "uppercase", letterSpacing: 1, paddingHorizontal: 24, marginBottom: 10, marginTop: 6 },
+  progressProfileCard: { marginTop: 16, marginBottom: 16, marginHorizontal: 16, borderRadius: 20, padding: 18, elevation: 4 },
+  progressProfileTop:  { flexDirection: "row", alignItems: "center", gap: 12, marginBottom: 16 },
+  progressAvatar:      { width: 56, height: 56, borderRadius: 28, backgroundColor: "rgba(255,255,255,0.2)", justifyContent: "center", alignItems: "center" },
+  progressAvatarTxt:   { fontSize: 26 },
+  progressProfileInfo: { flex: 1 },
+  progressProfileName: { fontSize: 18, fontWeight: "800", color: "#fff" },
+  progressLevelBadge:  { flexDirection: "row", alignItems: "center", gap: 4, marginTop: 4, backgroundColor: "rgba(255,255,255,0.2)", alignSelf: "flex-start", paddingHorizontal: 10, paddingVertical: 3, borderRadius: 12 },
+  progressLevelEmoji:  { fontSize: 14 },
+  progressLevelLabel:  { fontSize: 12, color: "#fff", fontWeight: "700" },
+  progressScoreBox:    { alignItems: "center" },
+  progressScoreNum:    { fontSize: 32, fontWeight: "900", color: "#fff" },
+  progressScoreLbl:    { fontSize: 11, color: "rgba(255,255,255,0.8)" },
+  progressXpSection:   { gap: 6 },
+  progressXpBarBg:     { height: 8, backgroundColor: "rgba(255,255,255,0.25)", borderRadius: 4, overflow: "hidden" },
+  progressXpBarFill:   { height: "100%", backgroundColor: "#fff", borderRadius: 4 },
+  progressXpLabel:     { fontSize: 11, color: "rgba(255,255,255,0.8)" },
+  progressStatsGrid:   { flexDirection: "row", flexWrap: "wrap", gap: 10, paddingHorizontal: 24, marginBottom: 4 },
+  progressStatCard:    { width: "30%", backgroundColor: COLORS.SURFACE, borderRadius: 12, padding: 12, alignItems: "center", borderTopWidth: 3, elevation: 1, flexGrow: 1 },
+  progressStatNum:     { fontSize: 22, fontWeight: "900", marginTop: 4 },
+  progressStatLbl:     { fontSize: 9, color: COLORS.TEXT_SECONDARY, textAlign: "center", marginTop: 2 },
+  progressChartCard:  { backgroundColor: COLORS.SURFACE, borderRadius: 14, padding: 16, marginBottom: 4, borderWidth: 1, borderColor: COLORS.BORDER, elevation: 1 },
+  progressChartTitle:  { fontSize: 13, fontWeight: "700", color: COLORS.TEXT_PRIMARY, marginBottom: 12 },
+  progressChartBars:   { gap: 12 },
+  progressChartBarRow:{ flexDirection: "row", alignItems: "center", gap: 10 },
+  progressChartBarLabel:{ width: 60, fontSize: 11, fontWeight: "600", color: COLORS.TEXT_SECONDARY },
+  progressChartBarTrack:{ flex: 1, height: 8, backgroundColor: COLORS.BORDER, borderRadius: 4, overflow: "hidden" },
+  progressChartBarFill:{ height: "100%", borderRadius: 4 },
+  progressChartBarValue:{ fontSize: 11, fontWeight: "700", color: COLORS.TEXT_PRIMARY, width: 35, textAlign: "right" },
+  progressLineChart:  { alignItems: "center", paddingTop: 8 },
+  progressLineChartBars:{ flexDirection: "row", justifyContent: "space-between", alignItems: "flex-end", height: 100, paddingHorizontal: 8 },
+  progressLineChartBarCol:{ alignItems: "center", gap: 6 },
+  progressLineChartBar:{ width: 28, borderRadius: 6, minHeight: 10 },
+  progressLineChartLabel:{ fontSize: 10, fontWeight: "600", color: COLORS.TEXT_SECONDARY },
+  progressLineChartValue:{ fontSize: 10, fontWeight: "700", color: COLORS.TEXT_PRIMARY },
+  progressTrendChart:  { alignItems: "center", paddingTop: 8 },
+  progressTrendLineContainer:{ width: "100%", height: 100, position: "relative" },
+  progressTrendLine:   { position: "absolute", height: 3, backgroundColor: COLORS.PRIMARY, borderRadius: 2, transformOrigin: "0 50%" },
+  progressTrendPoint:  { position: "absolute", width: 12, height: 12, borderRadius: 6, backgroundColor: COLORS.PRIMARY, borderWidth: 2, borderColor: "#fff", justifyContent: "center", alignItems: "center" },
+  progressTrendPointValue:{ fontSize: 8, fontWeight: "700", color: "#fff", position: "absolute", top: -14, width: 20, textAlign: "center" },
+  progressTrendLabel:  { fontSize: 10, fontWeight: "600", color: COLORS.TEXT_SECONDARY, position: "absolute" },
+  progressCatCard:     { backgroundColor: COLORS.SURFACE, borderRadius: 14, marginHorizontal: 24, marginBottom: 4, borderWidth: 1, borderColor: COLORS.BORDER, overflow: "hidden" },
+  progressCatRow:      { flexDirection: "row", alignItems: "center", paddingHorizontal: 14, paddingVertical: 11, borderBottomWidth: 1, borderBottomColor: COLORS.DIVIDER, gap: 10 },
+  progressCatName:     { flex: 1, fontSize: 13, fontWeight: "600", color: COLORS.TEXT_PRIMARY },
+  progressCatPill:     { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12 },
+  progressCatPillTxt:  { fontSize: 11, fontWeight: "700" },
+  achievementSubLabel: { fontSize: 12, color: COLORS.TEXT_SECONDARY, paddingHorizontal: 16, marginBottom: 8, fontWeight: "600" },
+  progressAchievementsGrid: { flexDirection: "row", flexWrap: "wrap", gap: 10, paddingHorizontal: 24, marginBottom: 10 },
+  progressAchievementCard: { width: "47%", borderRadius: 14, padding: 12, alignItems: "center", gap: 4, elevation: 1, borderWidth: 1, flexGrow: 1 },
+  progressAchievementUnlocked: { backgroundColor: "#F0FDF4", borderColor: "#BBF7D0" },
+  progressAchievementLocked: { backgroundColor: COLORS.SURFACE, borderColor: COLORS.BORDER },
+  progressAchievementEmoji: { fontSize: 28 },
+  progressAchievementLabel: { fontSize: 12, fontWeight: "800", color: COLORS.TEXT_PRIMARY, textAlign: "center" },
+  progressAchievementDesc: { fontSize: 10, color: COLORS.TEXT_SECONDARY, textAlign: "center" },
+  progressMotivCard:  { flexDirection: "row", alignItems: "center", gap: 10, borderRadius: 14, padding: 14, marginHorizontal: 24, marginTop: 4 },
+  progressMotivEmoji: { fontSize: 24 },
+  progressMotivTxt:   { flex: 1, color: "#fff", fontSize: 13, fontWeight: "600", lineHeight: 18 },
 });

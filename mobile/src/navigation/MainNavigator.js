@@ -40,7 +40,6 @@ import SetReminderScreen           from "../screens/SetReminderScreen";
 import RecyclingGuideScreen        from "../screens/RecyclingGuideScreen";
 import RecyclingCategoryScreen     from "../screens/RecyclingCategoryScreen";
 import WasteScanScreen             from "../screens/WasteScanScreen";
-import RecyclingProgressScreen     from "../screens/RecyclingProgressScreen";
 import CommunityScreen             from "../screens/CommunityScreen";
 import NotificationsScreen         from "../screens/NotificationsScreen";
 import RewardsScreen               from "../screens/RewardsScreen";
@@ -110,7 +109,6 @@ const HomeStack = () => {
       <Stack.Screen name="RecyclingCategory"  component={RecyclingCategoryScreen} />
       {/* Member 3 – Feature 4: AI Waste Assistant */}
       <Stack.Screen name="WasteScan"          component={WasteScanScreen} />
-      <Stack.Screen name="RecyclingProgress"  component={RecyclingProgressScreen} />
     </Stack.Navigator>
   );
 };
@@ -151,7 +149,6 @@ const ProfileStack = () => {
       <Stack.Screen name="Recycling"     component={RecyclingGuideScreen} />
       <Stack.Screen name="RecyclingCategory" component={RecyclingCategoryScreen} />
       <Stack.Screen name="WasteScan"     component={WasteScanScreen} />
-      <Stack.Screen name="RecyclingProgress" component={RecyclingProgressScreen} />
       <Stack.Screen name="Community"     component={CommunityScreen} />
       <Stack.Screen name="Rewards"       component={RewardsScreen} />
     </Stack.Navigator>
