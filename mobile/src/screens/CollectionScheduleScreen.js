@@ -108,7 +108,7 @@ const TabBar = ({ active, onSelect }) => (
 );
 
 // ── TODAY TAB ─────────────────────────────────────────────────────────────
-const TodayTab = ({ schedules, onViewUpcoming }) => {
+const TodayTab = ({ schedules, onViewUpcoming, navigation }) => {
   const todayName = DAYS[new Date().getDay()];
   const now = new Date();
   const todayItems = schedules.filter((s) => s.collectionDay === todayName);
@@ -220,6 +220,14 @@ const TodayTab = ({ schedules, onViewUpcoming }) => {
                   <Text style={S.tipIcon}>💡</Text>
                   <Text style={[S.tipText, { color: cfg.color }]}>{cfg.tip}</Text>
                 </View>
+                {/* Set Reminder button */}
+                <TouchableOpacity
+                  style={[S.reminderBtn, { borderColor: cfg.color }]}
+                  onPress={() => navigation?.navigate("SetReminder", { schedule: item })}
+                  accessibilityRole="button" accessibilityLabel="Set reminder">
+                  <Text style={S.reminderBtnIcon}>🔔</Text>
+                  <Text style={[S.reminderBtnTxt, { color: cfg.color }]}>Set Reminder</Text>
+                </TouchableOpacity>
               </View>
             </View>
           );
@@ -272,7 +280,7 @@ const TodayTab = ({ schedules, onViewUpcoming }) => {
 };
 
 // ── UPCOMING TAB ──────────────────────────────────────────────────────────
-const UpcomingTab = ({ schedules, onViewCalendar }) => {
+const UpcomingTab = ({ schedules, onViewCalendar, navigation }) => {
   const upcoming = schedules
     .map((s) => ({ ...s, nd: getNextDate(s.collectionDay) }))
     .filter((s) => s.nd)
@@ -617,8 +625,8 @@ const CollectionScheduleScreen = ({ navigation }) => {
       </View>
     );
     switch (tab) {
-      case "Today":    return <TodayTab    schedules={schedules} onViewUpcoming={() => setTab("Upcoming")} />;
-      case "Upcoming": return <UpcomingTab schedules={schedules} onViewCalendar={() => setTab("Calendar")} />;
+      case "Today":    return <TodayTab    schedules={schedules} onViewUpcoming={() => setTab("Upcoming")} navigation={navigation} />;
+      case "Upcoming": return <UpcomingTab schedules={schedules} onViewCalendar={() => setTab("Calendar")} navigation={navigation} />;
       case "Calendar": return <CalendarTab schedules={schedules} />;
       case "History":  return <HistoryTab  schedules={schedules} />;
       default: return null;
@@ -728,6 +736,9 @@ const S = StyleSheet.create({
   tipBox:           { flexDirection: "row", alignItems: "flex-start", gap: 8, padding: 10, borderRadius: 10, borderWidth: 1, marginTop: 4 },
   tipIcon:          { fontSize: 14 },
   tipText:          { flex: 1, fontSize: 12, lineHeight: 17, fontWeight: "500" },
+  reminderBtn:      { flexDirection: "row", alignItems: "center", justifyContent: "center", gap: 6, paddingVertical: 9, borderRadius: 10, borderWidth: 1.5, marginTop: 8 },
+  reminderBtnIcon:  { fontSize: 14 },
+  reminderBtnTxt:   { fontSize: 13, fontWeight: "700" },
   // Coming up
   comingCard:       { backgroundColor: COLORS.SURFACE, borderRadius: 14, marginBottom: 16, borderWidth: 1, borderColor: COLORS.BORDER, overflow: "hidden", elevation: 1 },
   comingRow:        { flexDirection: "row", alignItems: "center", paddingHorizontal: 14, paddingVertical: 11, gap: 10 },

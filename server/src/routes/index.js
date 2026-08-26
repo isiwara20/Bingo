@@ -18,6 +18,7 @@ const communityRoutes = require("./communityRoutes");
 const notificationRoutes = require("./notificationRoutes");
 const rewardRoutes = require("./rewardRoutes");
 const paymentRoutes = require("./paymentRoutes");
+const reminderRoutes = require("./reminderRoutes");
 
 // ── Health Check ───────────────────────────────────────────────────────────
 const mongoose = require("mongoose");
@@ -48,5 +49,6 @@ router.use("/community", communityRoutes);
 router.use("/notifications", notificationRoutes);
 router.use("/rewards", rewardRoutes);
 router.use("/payments", paymentRoutes);
+router.use("/reminders", reminderRoutes);
 
 module.exports = router;

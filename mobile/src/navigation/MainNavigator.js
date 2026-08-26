@@ -34,6 +34,9 @@ import WasteMapScreen              from "../screens/WasteMapScreen";
 import CollectionScheduleScreen    from "../screens/CollectionScheduleScreen";
 import ScheduleManagementScreen    from "../screens/ScheduleManagementScreen";
 import ScheduleFormScreen          from "../screens/ScheduleFormScreen";
+import CollectionDashboardScreen   from "../screens/CollectionDashboardScreen";
+import AlertManagementScreen       from "../screens/AlertManagementScreen";
+import SetReminderScreen           from "../screens/SetReminderScreen";
 import RecyclingGuideScreen        from "../screens/RecyclingGuideScreen";
 import CommunityScreen             from "../screens/CommunityScreen";
 import NotificationsScreen         from "../screens/NotificationsScreen";
@@ -94,9 +97,12 @@ const HomeStack = () => {
       <Stack.Screen name="Rewards"       component={RewardsScreen} />
       <Stack.Screen name="Payment"       component={PaymentScreen} />
       <Stack.Screen name="Settings"      component={SettingsScreen} />
-      {/* Member 3 – role-based schedule screen */}
+      {/* Member 3 – Feature 1: role-based schedule screen */}
       <Stack.Screen name="Schedule"      component={isAuthority ? ScheduleManagementScreen : CollectionScheduleScreen} />
       <Stack.Screen name="ScheduleForm"  component={ScheduleFormScreen} />
+      {/* Member 3 – Feature 2: set reminder (resident) / alert management (authority) */}
+      <Stack.Screen name="SetReminder"   component={SetReminderScreen} />
+      <Stack.Screen name="CollectionDashboard" component={isAuthority ? AlertManagementScreen : CollectionDashboardScreen} />
       <Stack.Screen name="Recycling"     component={RecyclingGuideScreen} />
     </Stack.Navigator>
   );
@@ -133,6 +139,8 @@ const ProfileStack = () => {
       <Stack.Screen name="Settings"      component={SettingsScreen} />
       <Stack.Screen name="Schedule"      component={isAuthority ? ScheduleManagementScreen : CollectionScheduleScreen} />
       <Stack.Screen name="ScheduleForm"  component={ScheduleFormScreen} />
+      <Stack.Screen name="SetReminder"   component={SetReminderScreen} />
+      <Stack.Screen name="CollectionDashboard" component={isAuthority ? AlertManagementScreen : CollectionDashboardScreen} />
       <Stack.Screen name="Recycling"     component={RecyclingGuideScreen} />
       <Stack.Screen name="Community"     component={CommunityScreen} />
       <Stack.Screen name="Rewards"       component={RewardsScreen} />
