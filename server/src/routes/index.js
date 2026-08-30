@@ -8,16 +8,17 @@
 const express = require("express");
 const router = express.Router();
 
-const authRoutes = require("./authRoutes");
-const userRoutes = require("./userRoutes");
-const reportRoutes = require("./reportRoutes");
-const mapRoutes = require("./mapRoutes");
-const scheduleRoutes = require("./scheduleRoutes");
-const recyclingRoutes = require("./recyclingRoutes");
-const communityRoutes = require("./communityRoutes");
+const authRoutes         = require("./authRoutes");
+const userRoutes         = require("./userRoutes");
+const reportRoutes       = require("./reportRoutes");
+const mapRoutes          = require("./mapRoutes");
+const scheduleRoutes     = require("./scheduleRoutes");
+const recyclingRoutes    = require("./recyclingRoutes");
+const communityRoutes    = require("./communityRoutes");
 const notificationRoutes = require("./notificationRoutes");
-const rewardRoutes = require("./rewardRoutes");
-const paymentRoutes = require("./paymentRoutes");
+const rewardRoutes       = require("./rewardRoutes");
+const paymentRoutes      = require("./paymentRoutes");
+const adminRoutes        = require("./adminRoutes");
 
 // ── Health Check ───────────────────────────────────────────────────────────
 const mongoose = require("mongoose");
@@ -38,15 +39,16 @@ router.get("/health", (req, res) => {
 });
 
 // ── Feature Routes ─────────────────────────────────────────────────────────
-router.use("/auth", authRoutes);
-router.use("/users", userRoutes);
-router.use("/reports", reportRoutes);
-router.use("/map", mapRoutes);
-router.use("/schedules", scheduleRoutes);
-router.use("/recycling", recyclingRoutes);
-router.use("/community", communityRoutes);
+router.use("/auth",          authRoutes);
+router.use("/users",         userRoutes);
+router.use("/reports",       reportRoutes);
+router.use("/map",           mapRoutes);
+router.use("/schedules",     scheduleRoutes);
+router.use("/recycling",     recyclingRoutes);
+router.use("/community",     communityRoutes);
 router.use("/notifications", notificationRoutes);
-router.use("/rewards", rewardRoutes);
-router.use("/payments", paymentRoutes);
+router.use("/rewards",       rewardRoutes);
+router.use("/payments",      paymentRoutes);
+router.use("/admin",         adminRoutes);
 
 module.exports = router;
