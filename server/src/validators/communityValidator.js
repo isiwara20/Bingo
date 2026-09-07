@@ -25,7 +25,7 @@ const validateCreatePost = [
 
   body("imageUrl")
     .optional({ nullable: true })
-    .isURL().withMessage("imageUrl must be a valid URL"),
+    .isString().withMessage("imageUrl must be a string"),
 
   body("eventDate")
     .optional({ nullable: true })
@@ -67,7 +67,7 @@ const validateUpdatePost = [
 
   body("imageUrl")
     .optional({ nullable: true })
-    .isURL().withMessage("imageUrl must be a valid URL"),
+    .isString().withMessage("imageUrl must be a string"),
 
   body("eventDate")
     .optional({ nullable: true })

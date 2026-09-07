@@ -34,6 +34,9 @@ import WasteMapScreen           from "../screens/WasteMapScreen";
 import CollectionScheduleScreen from "../screens/CollectionScheduleScreen";
 import RecyclingGuideScreen     from "../screens/RecyclingGuideScreen";
 import CommunityScreen          from "../screens/CommunityScreen";
+import CommunityDetailsScreen   from "../screens/CommunityDetailsScreen";
+import CommunityCreateScreen    from "../screens/CommunityCreateScreen";
+import CommunityMineScreen      from "../screens/CommunityMineScreen";
 import NotificationsScreen      from "../screens/NotificationsScreen";
 import RewardsScreen            from "../screens/RewardsScreen";
 import ProfileScreen            from "../screens/ProfileScreen";
@@ -82,6 +85,15 @@ const ReportStack = () => (
     <Stack.Screen name="ReportReview"  component={ReportReviewScreen} />
     <Stack.Screen name="ReportDetails" component={ReportDetailsScreen} />
     <Stack.Screen name="ReportStatus"  component={ReportStatusScreen} />
+  </Stack.Navigator>
+);
+
+const CommunityStack = () => (
+  <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Screen name="CommunityMain"    component={CommunityScreen} />
+    <Stack.Screen name="CommunityDetails" component={CommunityDetailsScreen} />
+    <Stack.Screen name="CommunityCreate"  component={CommunityCreateScreen} />
+    <Stack.Screen name="CommunityMine"    component={CommunityMineScreen} />
   </Stack.Navigator>
 );
 
@@ -139,7 +151,7 @@ const MainNavigator = () => {
       <Tab.Screen name="Report"    component={ReportStack}             options={{ tabBarLabel: "Report" }} />
       <Tab.Screen name="Map"       component={MapStack}                options={{ tabBarLabel: "Map" }} />
       <Tab.Screen name="Schedule"  component={CollectionScheduleScreen} options={{ tabBarLabel: "Schedule" }} />
-      <Tab.Screen name="Community" component={CommunityScreen}         options={{ tabBarLabel: "Community" }} />
+      <Tab.Screen name="Community" component={CommunityStack}          options={{ tabBarLabel: "Community" }} />
       <Tab.Screen name="Recycling" component={RecyclingGuideScreen}    options={{ tabBarLabel: "Recycle" }} />
       <Tab.Screen name="Profile"   component={ProfileStack}            options={{ tabBarLabel: "Profile" }} />
     </Tab.Navigator>
