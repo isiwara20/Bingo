@@ -15,6 +15,8 @@ const asyncHandler = require("../utils/asyncHandler");
 const { sendSuccess, sendPaginated } = require("../utils/apiResponse");
 const { ROLES } = require("../config/constants");
 const { awardPoints } = require("../services/rewardService");
+const User = require("../models/User");
+const Notification = require("../models/Notification");
 
 // ── Helper ────────────────────────────────────────────────────────────────
 const AUTHOR_FIELDS = "name profileImageUrl";
@@ -103,6 +105,19 @@ const createPost = asyncHandler(async (req, res) => {
       description: `Created announcement: ${post.title}`,
       relatedId: post._id,
     });
+
+    const recipients = await User.find({ _id: { $ne: req.user._id }, isActive: true }).select("_id");
+    if (recipients.length > 0) {
+      await Notification.insertMany(
+        recipients.map((u) => ({
+          userId: u._id,
+          type: "announcement",
+          title: post.title,
+          message: post.content.length > 200 ? `${post.content.slice(0, 200)}…` : post.content,
+          relatedId: post._id,
+        }))
+      );
+    }
   }
 
   sendSuccess(res, 201, "Post created successfully.", post);

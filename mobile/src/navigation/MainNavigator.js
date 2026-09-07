@@ -38,6 +38,7 @@ import CommunityDetailsScreen   from "../screens/CommunityDetailsScreen";
 import CommunityCreateScreen    from "../screens/CommunityCreateScreen";
 import CommunityMineScreen      from "../screens/CommunityMineScreen";
 import NotificationsScreen      from "../screens/NotificationsScreen";
+import NotificationSettingsScreen from "../screens/NotificationSettingsScreen";
 import RewardsScreen            from "../screens/RewardsScreen";
 import ProfileScreen            from "../screens/ProfileScreen";
 import SettingsScreen           from "../screens/SettingsScreen";
@@ -71,6 +72,7 @@ const makeHomeStack = (role) => {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="HomeMain"      component={Dashboard} />
       <Stack.Screen name="Notifications" component={NotificationsScreen} />
+      <Stack.Screen name="NotificationSettings" component={NotificationSettingsScreen} />
       <Stack.Screen name="Rewards"       component={RewardsScreen} />
       <Stack.Screen name="Payment"       component={PaymentScreen} />
       <Stack.Screen name="Settings"      component={SettingsScreen} />

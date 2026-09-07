@@ -8,6 +8,7 @@
 
 const { Reward, Achievement } = require("../models/Reward");
 const User = require("../models/User");
+const Notification = require("../models/Notification");
 
 const POINTS_TABLE = {
   event_joined: 10,
@@ -37,6 +38,14 @@ const awardPoints = async (userId, action, { description, relatedId } = {}) => {
 
   await Reward.create({ userId, action, points, description: description || null, relatedId: relatedId || null });
   await User.findByIdAndUpdate(userId, { $inc: { rewardPoints: points } });
+
+  await Notification.create({
+    userId,
+    type: "reward_earned",
+    title: "Points Earned!",
+    message: description ? `You earned ${points} points — ${description}.` : `You earned ${points} points.`,
+    relatedId: relatedId || null,
+  });
 
   const rules = BADGE_RULES.filter((r) => r.action === action);
   if (rules.length === 0) return;
