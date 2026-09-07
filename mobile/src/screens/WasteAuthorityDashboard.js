@@ -5,13 +5,15 @@
  * Sections: Priority Stats · Assigned Reports · Collection Routes · Actions
  */
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useState } from "react";
 import {
   View, Text, StyleSheet, ScrollView,
   TouchableOpacity, ActivityIndicator, RefreshControl,
 } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
 import { useAuth } from "../context/AuthContext";
 import { logout as logoutApi } from "../services/authService";
+import { getRewards } from "../services/rewardService";
 import DashboardHeader from "../components/DashboardHeader";
 import COLORS from "../constants/colors";
 
@@ -60,6 +62,7 @@ const ReportRow = ({ item, onPress }) => {
 const WasteAuthorityDashboard = ({ navigation }) => {
   const { user, logout } = useAuth();
   const [reports, setReports]  = useState([]);
+  const [points,  setPoints]   = useState(null);
   const [loading, setLoading]  = useState(true);
   const [refresh, setRefresh]  = useState(false);
 
@@ -74,9 +77,15 @@ const WasteAuthorityDashboard = ({ navigation }) => {
       setLoading(false);
       setRefresh(false);
     }
+    try {
+      const rewards = await getRewards();
+      setPoints(rewards.points);
+    } catch (_) {
+      // keep whatever points value we already have
+    }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useFocusEffect(useCallback(() => { load(); }, [load]));
 
   const handleLogout = async () => {
     try { await logoutApi(); } catch (_) {}
@@ -146,6 +155,7 @@ const WasteAuthorityDashboard = ({ navigation }) => {
             { emoji: "📅", label: "Collection Schedule", desc: "Manage pickup routes",        color: "#00695C",      screen: "Schedule" },
             { emoji: "👥", label: "Community Board",   desc: "Communicate with residents",   color: COLORS.PRIMARY, screen: "Community" },
             { emoji: "♻️", label: "Recycling Guide",   desc: "Update recycling information", color: COLORS.SUCCESS, screen: "Recycling" },
+            { emoji: "⭐", label: "Rewards",           desc: `${points ?? user?.rewardPoints ?? 0} points earned`, color: COLORS.ACCENT, screen: "Rewards" },
           ].map(a => (
             <TouchableOpacity
               key={a.label}

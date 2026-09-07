@@ -14,6 +14,7 @@ const AppError  = require("../utils/AppError");
 const asyncHandler = require("../utils/asyncHandler");
 const { sendSuccess, sendPaginated } = require("../utils/apiResponse");
 const { ROLES } = require("../config/constants");
+const { awardPoints } = require("../services/rewardService");
 
 // ── Helper ────────────────────────────────────────────────────────────────
 const AUTHOR_FIELDS = "name profileImageUrl";
@@ -96,6 +97,13 @@ const createPost = asyncHandler(async (req, res) => {
     eventDate: eventDate || null,
     location:  location  || null,
   });
+
+  if (postType === "announcement") {
+    await awardPoints(req.user._id, "announcement_created", {
+      description: `Created announcement: ${post.title}`,
+      relatedId: post._id,
+    });
+  }
 
   sendSuccess(res, 201, "Post created successfully.", post);
 });
@@ -182,6 +190,10 @@ const joinEvent = asyncHandler(async (req, res) => {
   if (!alreadyAttending) {
     post.attendees.push(userId);
     await post.save();
+    await awardPoints(userId, "event_joined", {
+      description: `Joined event: ${post.title}`,
+      relatedId: post._id,
+    });
   }
 
   sendSuccess(res, 200, "Joined event successfully.", {
