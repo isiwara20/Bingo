@@ -10,9 +10,10 @@
  * For production, replace with your deployed backend URL.
  */
 
-// Default to Android emulator URL if .env is not configured
+// ADB reverse tcp:5000 tcp:5000 is set up, so localhost works on physical device
+// Run: adb reverse tcp:5000 tcp:5000 && adb reverse tcp:8081 tcp:8081
 const API_BASE_URL =
-  process.env.API_BASE_URL || "http://10.0.2.2:5000/api/v1";
+  process.env.API_BASE_URL || "http://localhost:5000/api/v1";
 
 export default {
   API_BASE_URL,
