@@ -19,7 +19,6 @@ import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 
 import { useAuth } from "../context/AuthContext";
 import COLORS from "../constants/colors";
-import { useAuth } from "../context/AuthContext";
 
 // Role dashboards
 import ResidentDashboard        from "../screens/ResidentDashboard";
