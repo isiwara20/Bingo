@@ -3,8 +3,10 @@
  *
  * POST /api/v1/auth/register
  * POST /api/v1/auth/login
- * POST /api/v1/auth/logout    (protected)
- * GET  /api/v1/auth/me        (protected)
+ * POST /api/v1/auth/logout      (protected)
+ * GET  /api/v1/auth/me          (protected)
+ * POST /api/v1/auth/send-otp
+ * POST /api/v1/auth/verify-otp
  */
 
 const express = require("express");
@@ -32,5 +34,9 @@ router.post(
 router.post("/logout", authenticateUser, authController.logout);
 
 router.get("/me", authenticateUser, authController.getMe);
+
+router.post("/send-otp", authController.sendOtp);
+
+router.post("/verify-otp", authController.verifyOtp);
 
 module.exports = router;

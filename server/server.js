@@ -17,12 +17,13 @@ const NODE_ENV = process.env.NODE_ENV || "development";
 // Connect to MongoDB Atlas, then start the server
 connectDatabase()
   .then(() => {
-    app.listen(PORT, () => {
+    app.listen(PORT, "0.0.0.0", () => {
       console.log("===========================================");
       console.log(`  BinGo API Server`);
       console.log(`  Environment : ${NODE_ENV}`);
       console.log(`  Port        : ${PORT}`);
-      console.log(`  Health      : http://localhost:${PORT}/api/v1/health`);
+      console.log(`  Local       : http://localhost:${PORT}/api/v1/health`);
+      console.log(`  Network     : http://192.168.1.8:${PORT}/api/v1/health`);
       console.log("===========================================");
     });
   })
