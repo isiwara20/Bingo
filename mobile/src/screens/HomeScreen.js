@@ -64,6 +64,14 @@ const QUICK_ACTIONS = [
     color: COLORS.SUCCESS,
   },
   {
+    id: "dashboard",
+    label: "Alerts",
+    emoji: "🔔",
+    screen: "CollectionDashboard",
+    description: "Reminders & alerts",
+    color: COLORS.ACCENT,
+  },
+  {
     id: "recycling",
     label: "Recycling",
     emoji: "♻️",

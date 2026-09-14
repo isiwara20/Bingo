@@ -4,7 +4,7 @@ apply plugin: "com.facebook.react"
 
 react {
     // Root of your project (where package.json lives).
-    // app/build.gradle is at mobile/android/app/, so ../../ reaches mobile/
+    // "../.." from android/app/ resolves to the mobile/ folder where package.json is.
     root = file("../../")
     // React Native entry file
     // entryFile = file("../../index.js")

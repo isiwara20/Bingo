@@ -26,26 +26,30 @@ import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 
 import { useAuth } from "../context/AuthContext";
 import COLORS from "../constants/colors";
+import { useAuth } from "../context/AuthContext";
 
-// Role dashboards
-import ResidentDashboard        from "../screens/ResidentDashboard";
-import CommunityLeaderDashboard from "../screens/CommunityLeaderDashboard";
-import WasteAuthorityDashboard  from "../screens/WasteAuthorityDashboard";
-
-// Screens
-import ReportWasteScreen        from "../screens/ReportWasteScreen";
-import ReportReviewScreen       from "../screens/ReportReviewScreen";
-import ReportDetailsScreen      from "../screens/ReportDetailsScreen";
-import ReportStatusScreen       from "../screens/ReportStatusScreen";
-import WasteMapScreen           from "../screens/WasteMapScreen";
-import CollectionScheduleScreen from "../screens/CollectionScheduleScreen";
-import RecyclingGuideScreen     from "../screens/RecyclingGuideScreen";
-import CommunityScreen          from "../screens/CommunityScreen";
-import NotificationsScreen      from "../screens/NotificationsScreen";
-import RewardsScreen            from "../screens/RewardsScreen";
-import ProfileScreen            from "../screens/ProfileScreen";
-import SettingsScreen           from "../screens/SettingsScreen";
-import PaymentScreen            from "../screens/PaymentScreen";
+// ── Screens ───────────────────────────────────────────────────────────────
+import HomeScreen                  from "../screens/HomeScreen";
+import ReportWasteScreen           from "../screens/ReportWasteScreen";
+import ReportReviewScreen          from "../screens/ReportReviewScreen";
+import ReportDetailsScreen         from "../screens/ReportDetailsScreen";
+import ReportStatusScreen          from "../screens/ReportStatusScreen";
+import WasteMapScreen              from "../screens/WasteMapScreen";
+import CollectionScheduleScreen    from "../screens/CollectionScheduleScreen";
+import ScheduleManagementScreen    from "../screens/ScheduleManagementScreen";
+import ScheduleFormScreen          from "../screens/ScheduleFormScreen";
+import CollectionDashboardScreen   from "../screens/CollectionDashboardScreen";
+import AlertManagementScreen       from "../screens/AlertManagementScreen";
+import SetReminderScreen           from "../screens/SetReminderScreen";
+import RecyclingGuideScreen        from "../screens/RecyclingGuideScreen";
+import RecyclingCategoryScreen     from "../screens/RecyclingCategoryScreen";
+import WasteScanScreen             from "../screens/WasteScanScreen";
+import CommunityScreen             from "../screens/CommunityScreen";
+import NotificationsScreen         from "../screens/NotificationsScreen";
+import RewardsScreen               from "../screens/RewardsScreen";
+import ProfileScreen               from "../screens/ProfileScreen";
+import SettingsScreen              from "../screens/SettingsScreen";
+import PaymentScreen               from "../screens/PaymentScreen";
 
 const Tab   = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -83,6 +87,45 @@ const makeHomeStack = (role) => {
   return HomeStack;
 };
 
+// ── Centre FAB – floating report button ───────────────────────────────────
+const ReportFAB = ({ onPress }) => (
+  <TouchableOpacity
+    style={styles.fab}
+    onPress={onPress}
+    activeOpacity={0.85}
+    accessibilityRole="button"
+    accessibilityLabel="Report illegal dumping"
+  >
+    <Text style={styles.fabIcon}>＋</Text>
+  </TouchableOpacity>
+);
+
+// ── Stack navigators ──────────────────────────────────────────────────────
+
+const HomeStack = () => {
+  const { user } = useAuth();
+  const isAuthority = ["admin", "waste_authority"].includes(user?.role);
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="HomeMain"      component={HomeScreen} />
+      <Stack.Screen name="Notifications" component={NotificationsScreen} />
+      <Stack.Screen name="Rewards"       component={RewardsScreen} />
+      <Stack.Screen name="Payment"       component={PaymentScreen} />
+      <Stack.Screen name="Settings"      component={SettingsScreen} />
+      {/* Member 3 – Feature 1: role-based schedule screen */}
+      <Stack.Screen name="Schedule"      component={isAuthority ? ScheduleManagementScreen : CollectionScheduleScreen} />
+      <Stack.Screen name="ScheduleForm"  component={ScheduleFormScreen} />
+      {/* Member 3 – Feature 2: set reminder (resident) / alert management (authority) */}
+      <Stack.Screen name="SetReminder"   component={SetReminderScreen} />
+      <Stack.Screen name="CollectionDashboard" component={isAuthority ? AlertManagementScreen : CollectionDashboardScreen} />
+      <Stack.Screen name="Recycling"          component={RecyclingGuideScreen} />
+      <Stack.Screen name="RecyclingCategory"  component={RecyclingCategoryScreen} />
+      {/* Member 3 – Feature 4: AI Waste Assistant */}
+      <Stack.Screen name="WasteScan"          component={WasteScanScreen} />
+    </Stack.Navigator>
+  );
+};
+
 const ReportStack = () => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>
     <Stack.Screen name="ReportWaste"   component={ReportWasteScreen} />
@@ -99,12 +142,31 @@ const MapStack = () => (
   </Stack.Navigator>
 );
 
-const ProfileStack = () => (
+const AlertsStack = () => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>
-    <Stack.Screen name="ProfileMain" component={ProfileScreen} />
-    <Stack.Screen name="Settings"    component={SettingsScreen} />
+    <Stack.Screen name="AlertsMain"    component={NotificationsScreen} />
   </Stack.Navigator>
 );
+
+const ProfileStack = () => {
+  const { user } = useAuth();
+  const isAuthority = ["admin", "waste_authority"].includes(user?.role);
+  return (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="ProfileMain"   component={ProfileScreen} />
+      <Stack.Screen name="Settings"      component={SettingsScreen} />
+      <Stack.Screen name="Schedule"      component={isAuthority ? ScheduleManagementScreen : CollectionScheduleScreen} />
+      <Stack.Screen name="ScheduleForm"  component={ScheduleFormScreen} />
+      <Stack.Screen name="SetReminder"   component={SetReminderScreen} />
+      <Stack.Screen name="CollectionDashboard" component={isAuthority ? AlertManagementScreen : CollectionDashboardScreen} />
+      <Stack.Screen name="Recycling"     component={RecyclingGuideScreen} />
+      <Stack.Screen name="RecyclingCategory" component={RecyclingCategoryScreen} />
+      <Stack.Screen name="WasteScan"     component={WasteScanScreen} />
+      <Stack.Screen name="Community"     component={CommunityScreen} />
+      <Stack.Screen name="Rewards"       component={RewardsScreen} />
+    </Stack.Navigator>
+  );
+};
 
 // ── Main Tab Navigator ────────────────────────────────────────────────────────
 const MainNavigator = () => {
