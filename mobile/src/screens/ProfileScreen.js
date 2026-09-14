@@ -3,15 +3,28 @@
  * TODO (Member 1): Implement profile editing, password change in Sprint 2.
  */
 
-import React from "react";
+import React, { useState, useCallback } from "react";
 import { View, Text, StyleSheet, TouchableOpacity, Alert } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { useFocusEffect } from "@react-navigation/native";
 import { useAuth } from "../context/AuthContext";
 import { logout } from "../services/authService";
+import { getRewards } from "../services/rewardService";
 import COLORS from "../constants/colors";
 
 const ProfileScreen = ({ navigation }) => {
   const { user, logout: clearAuth } = useAuth();
+  const [points, setPoints] = useState(null);
+
+  useFocusEffect(
+    useCallback(() => {
+      let cancelled = false;
+      getRewards()
+        .then((rewards) => { if (!cancelled) setPoints(rewards.points); })
+        .catch(() => {});
+      return () => { cancelled = true; };
+    }, [])
+  );
 
   const handleLogout = () => {
     Alert.alert("Sign Out", "Are you sure you want to sign out?", [
@@ -45,7 +58,7 @@ const ProfileScreen = ({ navigation }) => {
         <View style={styles.roleBadge}>
           <Text style={styles.roleText}>{user?.role?.replace("_", " ")}</Text>
         </View>
-        <Text style={styles.points}>⭐ {user?.rewardPoints || 0} reward points</Text>
+        <Text style={styles.points}>⭐ {points ?? user?.rewardPoints ?? 0} reward points</Text>
 
         <View style={styles.actions}>
           <TouchableOpacity

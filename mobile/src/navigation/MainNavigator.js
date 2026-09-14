@@ -12,13 +12,6 @@
  */
 
 import React from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Platform,
-} from "react-native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -28,28 +21,29 @@ import { useAuth } from "../context/AuthContext";
 import COLORS from "../constants/colors";
 import { useAuth } from "../context/AuthContext";
 
-// ── Screens ───────────────────────────────────────────────────────────────
-import HomeScreen                  from "../screens/HomeScreen";
-import ReportWasteScreen           from "../screens/ReportWasteScreen";
-import ReportReviewScreen          from "../screens/ReportReviewScreen";
-import ReportDetailsScreen         from "../screens/ReportDetailsScreen";
-import ReportStatusScreen          from "../screens/ReportStatusScreen";
-import WasteMapScreen              from "../screens/WasteMapScreen";
-import CollectionScheduleScreen    from "../screens/CollectionScheduleScreen";
-import ScheduleManagementScreen    from "../screens/ScheduleManagementScreen";
-import ScheduleFormScreen          from "../screens/ScheduleFormScreen";
-import CollectionDashboardScreen   from "../screens/CollectionDashboardScreen";
-import AlertManagementScreen       from "../screens/AlertManagementScreen";
-import SetReminderScreen           from "../screens/SetReminderScreen";
-import RecyclingGuideScreen        from "../screens/RecyclingGuideScreen";
-import RecyclingCategoryScreen     from "../screens/RecyclingCategoryScreen";
-import WasteScanScreen             from "../screens/WasteScanScreen";
-import CommunityScreen             from "../screens/CommunityScreen";
-import NotificationsScreen         from "../screens/NotificationsScreen";
-import RewardsScreen               from "../screens/RewardsScreen";
-import ProfileScreen               from "../screens/ProfileScreen";
-import SettingsScreen              from "../screens/SettingsScreen";
-import PaymentScreen               from "../screens/PaymentScreen";
+// Role dashboards
+import ResidentDashboard        from "../screens/ResidentDashboard";
+import CommunityLeaderDashboard from "../screens/CommunityLeaderDashboard";
+import WasteAuthorityDashboard  from "../screens/WasteAuthorityDashboard";
+
+// Screens
+import ReportWasteScreen        from "../screens/ReportWasteScreen";
+import ReportReviewScreen       from "../screens/ReportReviewScreen";
+import ReportDetailsScreen      from "../screens/ReportDetailsScreen";
+import ReportStatusScreen       from "../screens/ReportStatusScreen";
+import WasteMapScreen           from "../screens/WasteMapScreen";
+import CollectionScheduleScreen from "../screens/CollectionScheduleScreen";
+import RecyclingGuideScreen     from "../screens/RecyclingGuideScreen";
+import CommunityScreen          from "../screens/CommunityScreen";
+import CommunityDetailsScreen   from "../screens/CommunityDetailsScreen";
+import CommunityCreateScreen    from "../screens/CommunityCreateScreen";
+import CommunityMineScreen      from "../screens/CommunityMineScreen";
+import NotificationsScreen      from "../screens/NotificationsScreen";
+import NotificationSettingsScreen from "../screens/NotificationSettingsScreen";
+import RewardsScreen            from "../screens/RewardsScreen";
+import ProfileScreen            from "../screens/ProfileScreen";
+import SettingsScreen           from "../screens/SettingsScreen";
+import PaymentScreen            from "../screens/PaymentScreen";
 
 const Tab   = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -79,51 +73,13 @@ const makeHomeStack = (role) => {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="HomeMain"      component={Dashboard} />
       <Stack.Screen name="Notifications" component={NotificationsScreen} />
+      <Stack.Screen name="NotificationSettings" component={NotificationSettingsScreen} />
       <Stack.Screen name="Rewards"       component={RewardsScreen} />
       <Stack.Screen name="Payment"       component={PaymentScreen} />
       <Stack.Screen name="Settings"      component={SettingsScreen} />
     </Stack.Navigator>
   );
   return HomeStack;
-};
-
-// ── Centre FAB – floating report button ───────────────────────────────────
-const ReportFAB = ({ onPress }) => (
-  <TouchableOpacity
-    style={styles.fab}
-    onPress={onPress}
-    activeOpacity={0.85}
-    accessibilityRole="button"
-    accessibilityLabel="Report illegal dumping"
-  >
-    <Text style={styles.fabIcon}>＋</Text>
-  </TouchableOpacity>
-);
-
-// ── Stack navigators ──────────────────────────────────────────────────────
-
-const HomeStack = () => {
-  const { user } = useAuth();
-  const isAuthority = ["admin", "waste_authority"].includes(user?.role);
-  return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="HomeMain"      component={HomeScreen} />
-      <Stack.Screen name="Notifications" component={NotificationsScreen} />
-      <Stack.Screen name="Rewards"       component={RewardsScreen} />
-      <Stack.Screen name="Payment"       component={PaymentScreen} />
-      <Stack.Screen name="Settings"      component={SettingsScreen} />
-      {/* Member 3 – Feature 1: role-based schedule screen */}
-      <Stack.Screen name="Schedule"      component={isAuthority ? ScheduleManagementScreen : CollectionScheduleScreen} />
-      <Stack.Screen name="ScheduleForm"  component={ScheduleFormScreen} />
-      {/* Member 3 – Feature 2: set reminder (resident) / alert management (authority) */}
-      <Stack.Screen name="SetReminder"   component={SetReminderScreen} />
-      <Stack.Screen name="CollectionDashboard" component={isAuthority ? AlertManagementScreen : CollectionDashboardScreen} />
-      <Stack.Screen name="Recycling"          component={RecyclingGuideScreen} />
-      <Stack.Screen name="RecyclingCategory"  component={RecyclingCategoryScreen} />
-      {/* Member 3 – Feature 4: AI Waste Assistant */}
-      <Stack.Screen name="WasteScan"          component={WasteScanScreen} />
-    </Stack.Navigator>
-  );
 };
 
 const ReportStack = () => (
@@ -135,6 +91,15 @@ const ReportStack = () => (
   </Stack.Navigator>
 );
 
+const CommunityStack = () => (
+  <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Screen name="CommunityMain"    component={CommunityScreen} />
+    <Stack.Screen name="CommunityDetails" component={CommunityDetailsScreen} />
+    <Stack.Screen name="CommunityCreate"  component={CommunityCreateScreen} />
+    <Stack.Screen name="CommunityMine"    component={CommunityMineScreen} />
+  </Stack.Navigator>
+);
+
 const MapStack = () => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>
     <Stack.Screen name="WasteMap"      component={WasteMapScreen} />
@@ -142,31 +107,12 @@ const MapStack = () => (
   </Stack.Navigator>
 );
 
-const AlertsStack = () => (
+const ProfileStack = () => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>
-    <Stack.Screen name="AlertsMain"    component={NotificationsScreen} />
+    <Stack.Screen name="ProfileMain" component={ProfileScreen} />
+    <Stack.Screen name="Settings"    component={SettingsScreen} />
   </Stack.Navigator>
 );
-
-const ProfileStack = () => {
-  const { user } = useAuth();
-  const isAuthority = ["admin", "waste_authority"].includes(user?.role);
-  return (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="ProfileMain"   component={ProfileScreen} />
-      <Stack.Screen name="Settings"      component={SettingsScreen} />
-      <Stack.Screen name="Schedule"      component={isAuthority ? ScheduleManagementScreen : CollectionScheduleScreen} />
-      <Stack.Screen name="ScheduleForm"  component={ScheduleFormScreen} />
-      <Stack.Screen name="SetReminder"   component={SetReminderScreen} />
-      <Stack.Screen name="CollectionDashboard" component={isAuthority ? AlertManagementScreen : CollectionDashboardScreen} />
-      <Stack.Screen name="Recycling"     component={RecyclingGuideScreen} />
-      <Stack.Screen name="RecyclingCategory" component={RecyclingCategoryScreen} />
-      <Stack.Screen name="WasteScan"     component={WasteScanScreen} />
-      <Stack.Screen name="Community"     component={CommunityScreen} />
-      <Stack.Screen name="Rewards"       component={RewardsScreen} />
-    </Stack.Navigator>
-  );
-};
 
 // ── Main Tab Navigator ────────────────────────────────────────────────────────
 const MainNavigator = () => {
@@ -208,59 +154,11 @@ const MainNavigator = () => {
       <Tab.Screen name="Report"    component={ReportStack}             options={{ tabBarLabel: "Report" }} />
       <Tab.Screen name="Map"       component={MapStack}                options={{ tabBarLabel: "Map" }} />
       <Tab.Screen name="Schedule"  component={CollectionScheduleScreen} options={{ tabBarLabel: "Schedule" }} />
-      <Tab.Screen name="Community" component={CommunityScreen}         options={{ tabBarLabel: "Community" }} />
+      <Tab.Screen name="Community" component={CommunityStack}          options={{ tabBarLabel: "Community" }} />
       <Tab.Screen name="Recycling" component={RecyclingGuideScreen}    options={{ tabBarLabel: "Recycle" }} />
       <Tab.Screen name="Profile"   component={ProfileStack}            options={{ tabBarLabel: "Profile" }} />
     </Tab.Navigator>
   );
 };
-
-// ── Styles ────────────────────────────────────────────────────────────────
-const styles = StyleSheet.create({
-  // Bottom nav bar
-  tabBar: {
-    backgroundColor: COLORS.NAV_BG,           // white
-    borderTopWidth: 1,
-    borderTopColor: COLORS.DIVIDER,
-    height: Platform.OS === "android" ? 64 : 80,
-    paddingBottom: Platform.OS === "android" ? 8 : 20,
-    paddingTop: 6,
-    // Subtle shadow matching wireframe
-    shadowColor: COLORS.SHADOW,
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 12,
-  },
-  tabLabel: {
-    fontSize: 11,
-    fontWeight: "600",
-    marginTop: 2,
-  },
-
-  // Centre FAB
-  fab: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: COLORS.NAV_FAB,          // dark green
-    justifyContent: "center",
-    alignItems: "center",
-    // Lift it above the nav bar
-    marginBottom: Platform.OS === "android" ? 18 : 28,
-    // Shadow
-    shadowColor: COLORS.SHADOW,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 8,
-  },
-  fabIcon: {
-    fontSize: 28,
-    color: COLORS.NAV_FAB_ICON,               // white
-    lineHeight: 32,
-    includeFontPadding: false,
-  },
-});
 
 export default MainNavigator;

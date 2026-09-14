@@ -16,6 +16,8 @@ const REWARD_ACTIONS = [
   "recycling_activity",
   "referral",
   "admin_grant",
+  "event_joined",
+  "announcement_created",
 ];
 
 const rewardSchema = new mongoose.Schema(
