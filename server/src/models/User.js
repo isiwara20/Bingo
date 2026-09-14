@@ -48,16 +48,50 @@ const userSchema = new mongoose.Schema(
       default: null,
     },
 
+    phoneVerified: {
+      type: Boolean,
+      default: false,
+    },
+
+    otpCode: {
+      type: String,
+      select: false,
+      default: null,
+    },
+
+    otpExpiry: {
+      type: Date,
+      select: false,
+      default: null,
+    },
+
     address: {
       type: String,
       trim: true,
       default: null,
     },
 
-    profileImage: {
-      type: String, // URL to profile image
+    location: {
+      type: {
+        type: String,
+        enum: ["Point"],
+        default: undefined,
+      },
+      coordinates: {
+        type: [Number], // [longitude, latitude]
+        default: undefined,
+      },
+    },
+
+    communityName: {
+      type: String,
+      trim: true,
       default: null,
-      // TODO Sprint 2+: Integrate with cloud storage (Cloudinary)
+    },
+
+    profileImage: {
+      type: String,
+      default: null,
     },
 
     role: {
@@ -96,6 +130,7 @@ const userSchema = new mongoose.Schema(
 // ── Indexes ────────────────────────────────────────────────────────────────
 userSchema.index({ email: 1 }, { unique: true });
 userSchema.index({ role: 1 });
+userSchema.index({ location: "2dsphere" }, { sparse: true });
 
 // ── Pre-save hook – hash password before saving ────────────────────────────
 userSchema.pre("save", async function (next) {

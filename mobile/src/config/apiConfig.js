@@ -8,12 +8,15 @@
  * Web/Localhost     → localhost
  *
  * For production, replace with your deployed backend URL.
+ *
+ * Current LAN IP: 192.168.1.8
+ * Make sure your phone and PC are on the same Wi-Fi network.
  */
 
-// ADB reverse tcp:5000 tcp:5000 is set up, so localhost works on physical device
-// Run: adb reverse tcp:5000 tcp:5000 && adb reverse tcp:8081 tcp:8081
+// Deployed backend — works from any network (phone, WiFi, mobile data)
+// Replace with your Railway/Render URL after deployment
 const API_BASE_URL =
-  process.env.API_BASE_URL || "http://localhost:5000/api/v1";
+  process.env.API_BASE_URL || "http://192.168.1.8:5000/api/v1";
 
 export default {
   API_BASE_URL,
