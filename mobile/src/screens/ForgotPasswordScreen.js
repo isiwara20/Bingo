@@ -665,7 +665,7 @@ const s = StyleSheet.create({
   // ── Success view ──────────────────────────────────────────────────────────
   successContainer: {
     flex: 1, alignItems: "center",
-    paddingTop: 16, gap: 20,
+    paddingTop: 16, paddingHorizontal: 4, gap: 20,
   },
   successCircle: {
     width: 100, height: 100, borderRadius: 50,
