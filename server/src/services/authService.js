@@ -15,8 +15,8 @@ const { HTTP_STATUS, ROLES } = require("../config/constants");
  * @param {string} userId
  * @returns {string}
  */
-const generateToken = (userId) => {
-  return jwt.sign({ id: userId }, process.env.JWT_SECRET, {
+const generateToken = (userId, sessionVersion = 0) => {
+  return jwt.sign({ id: userId, sessionVersion }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRES_IN || "7d",
   });
 };
@@ -94,7 +94,7 @@ const registerUser = async ({
   }
 
   const user = await User.create(userData);
-  const token = generateToken(user._id);
+  const token = generateToken(user._id, user.sessionVersion);
 
   return { user, token };
 };
@@ -125,7 +125,7 @@ const loginUser = async ({ email, password }) => {
     throw new AppError("Invalid email or password.", HTTP_STATUS.UNAUTHORIZED);
   }
 
-  const token = generateToken(user._id);
+  const token = generateToken(user._id, user.sessionVersion);
   user.passwordHash = undefined;
 
   return { user, token };

@@ -50,6 +50,10 @@ const authenticateUser = asyncHandler(async (req, res, next) => {
     );
   }
 
+  if ((decoded.sessionVersion || 0) !== (user.sessionVersion || 0)) {
+    throw new AppError("Your password was changed. Please sign in again.", 401);
+  }
+
   // Attach user to request
   req.user = user;
   next();

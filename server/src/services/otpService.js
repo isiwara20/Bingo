@@ -44,13 +44,13 @@ const normaliseWhatsAppNumber = (number) => {
 };
 
 // ── Send WhatsApp message via WAClient ────────────────────────────────────────
-const sendWhatsApp = (whatsappNumber, message) => {
+const sendWhatsApp = (whatsappNumber, message, { requireDelivery = false } = {}) => {
   return new Promise((resolve, reject) => {
     const instanceId   = process.env.WACLIENT_INSTANCE_ID;
     const accessToken  = process.env.WACLIENT_ACCESS_TOKEN;
 
     if (!instanceId || !accessToken) {
-      if (process.env.NODE_ENV === "development") {
+      if (process.env.NODE_ENV === "development" && !requireDelivery) {
         console.log(`\n[OTP DEV] WhatsApp to ${whatsappNumber}:\n${message}\n`);
         return resolve();
       }
@@ -88,7 +88,7 @@ const sendWhatsApp = (whatsappNumber, message) => {
       res.on("end", () => {
         try {
           const parsed = JSON.parse(data);
-          if (parsed.status === "success" || res.statusCode === 200) {
+          if (res.statusCode >= 200 && res.statusCode < 300 && parsed.status === "success") {
             resolve();
           } else {
             reject(
@@ -108,6 +108,7 @@ const sendWhatsApp = (whatsappNumber, message) => {
       reject(new AppError(`WhatsApp network error: ${err.message}`, HTTP_STATUS.INTERNAL_SERVER_ERROR));
     });
 
+    req.setTimeout(15000, () => req.destroy(new Error("WhatsApp request timed out.")));
     req.write(payload);
     req.end();
   });

@@ -42,6 +42,20 @@ const userSchema = new mongoose.Schema(
       select: false, // Never returned in queries unless explicitly requested
     },
 
+    sessionVersion: { type: Number, default: 0 },
+    passwordReset: {
+      type: new mongoose.Schema({
+        otpHash: String,
+        expiresAt: Date,
+        sentAt: Date,
+        attempts: { type: Number, default: 0 },
+        tokenHash: String,
+        tokenExpiresAt: Date,
+      }, { _id: false }),
+      select: false,
+      default: undefined,
+    },
+
     phone: {
       type: String,
       trim: true,
@@ -154,6 +168,9 @@ const userSchema = new mongoose.Schema(
       // Remove sensitive fields when converting to JSON
       transform: (doc, ret) => {
         delete ret.passwordHash;
+        delete ret.passwordReset;
+        delete ret.otpCode;
+        delete ret.otpExpiry;
         delete ret.__v;
         return ret;
       },

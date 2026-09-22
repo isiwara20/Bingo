@@ -72,3 +72,15 @@ export const verifyOtp = async (whatsappNumber, otp) => {
   const response = await api.post("/auth/verify-otp", { whatsappNumber, otp });
   return response.data.data;
 };
+
+export const requestPasswordReset = async (email) => {
+  const response = await api.post("/auth/password-reset/request", { email });
+  return response.data;
+};
+export const verifyPasswordReset = async (email, otp) => {
+  const response = await api.post("/auth/password-reset/verify", { email, otp });
+  return response.data.data;
+};
+export const completePasswordReset = async (resetToken, password) => {
+  await api.post("/auth/password-reset/complete", { resetToken, password });
+};
