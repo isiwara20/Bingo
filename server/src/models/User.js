@@ -130,6 +130,23 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+
+    // ── Plan (residents only) ─────────────────────────────────────────────
+    plan: {
+      type: String,
+      enum: ["free", "plus", "pro"],
+      default: null,
+    },
+
+    hasSelectedPlan: {
+      type: Boolean,
+      default: false,
+    },
+
+    planActivatedAt: {
+      type: Date,
+      default: null,
+    },
   },
   {
     timestamps: true, // adds createdAt and updatedAt automatically
