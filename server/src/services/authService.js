@@ -43,12 +43,13 @@ const registerUser = async ({
   email,
   password,
   phone,
+  whatsappNumber,
   role,
   address,
   communityName,
+  authorityName,
   location,
 }) => {
-  // Check for existing email
   const existing = await User.findOne({ email });
   if (existing) {
     throw new AppError(
@@ -57,26 +58,31 @@ const registerUser = async ({
     );
   }
 
-  // Only allow public-facing roles via registration
   const allowedRoles = [ROLES.RESIDENT, ROLES.COMMUNITY_LEADER, ROLES.WASTE_AUTHORITY];
   const assignedRole = allowedRoles.includes(role) ? role : ROLES.RESIDENT;
 
-  // Build user data
   const userData = {
     name,
     email,
-    passwordHash: password, // pre-save hook hashes this
+    passwordHash: password,
     phone: phone || null,
+    whatsappNumber: whatsappNumber || null,
     role: assignedRole,
     address: address || null,
   };
 
-  // Community leader requires a community name
   if (assignedRole === ROLES.COMMUNITY_LEADER) {
     if (!communityName || !communityName.trim()) {
       throw new AppError("Community name is required for community leaders.", HTTP_STATUS.BAD_REQUEST);
     }
     userData.communityName = communityName.trim();
+  }
+
+  if (assignedRole === ROLES.WASTE_AUTHORITY) {
+    if (!authorityName || !authorityName.trim()) {
+      throw new AppError("Authority name is required for waste authority accounts.", HTTP_STATUS.BAD_REQUEST);
+    }
+    userData.authorityName = authorityName.trim();
   }
 
   // Attach GeoJSON location if provided

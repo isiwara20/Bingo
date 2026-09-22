@@ -2,13 +2,14 @@
  * BinGo – OTP Service
  *
  * Generates, stores, and verifies one-time passwords.
- * Sends SMS via text.lk API.
+ * Sends OTP via WhatsApp using WAClient Web API.
  *
- * text.lk API docs: https://www.text.lk/api
+ * WAClient API: https://api.waclient.com/send
  * Credentials are read from environment variables:
- *   TEXTLK_USER_ID   – your text.lk user ID
- *   TEXTLK_API_KEY   – your text.lk API key
- *   TEXTLK_SENDER_ID – approved sender ID (e.g. "BinGo")
+ *   WACLIENT_INSTANCE_ID  – your WAClient instance ID
+ *   WACLIENT_ACCESS_TOKEN – your WAClient access token
+ *
+ * In development, if credentials are not set, OTP is printed to console.
  */
 
 const https = require("https");
@@ -19,63 +20,64 @@ const { HTTP_STATUS } = require("../config/constants");
 const OTP_LENGTH = 6;
 const OTP_EXPIRY_MINUTES = 10;
 
-/**
- * Generate a cryptographically random numeric OTP.
- * @returns {string} 6-digit OTP string
- */
+// ── OTP Generator ─────────────────────────────────────────────────────────────
 const generateOtp = () => {
-  const digits = "0123456789";
+  // Use crypto for secure random generation
+  const { randomInt } = require("crypto");
   let otp = "";
   for (let i = 0; i < OTP_LENGTH; i++) {
-    otp += digits[Math.floor(Math.random() * 10)];
+    otp += randomInt(0, 10).toString();
   }
   return otp;
 };
 
-/**
- * Send an SMS via text.lk REST API.
- *
- * @param {string} phone  - Recipient phone number (e.g. "0771234567" or "+94771234567")
- * @param {string} message - SMS body text
- * @returns {Promise<void>}
- */
-const sendSms = (phone, message) => {
-  return new Promise((resolve, reject) => {
-    const userId = process.env.TEXTLK_USER_ID;
-    const apiKey = process.env.TEXTLK_API_KEY;
-    const senderId = process.env.TEXTLK_SENDER_ID || "BinGo";
+// ── Normalise WhatsApp number ─────────────────────────────────────────────────
+// WAClient expects international format digits only, e.g. 94771234567
+const normaliseWhatsAppNumber = (number) => {
+  let n = number.replace(/[\s\-\(\)]/g, ""); // strip spaces, dashes, brackets
+  if (n.startsWith("+")) n = n.slice(1);      // remove leading +
+  // Sri Lanka: 07x → 947x
+  if (n.startsWith("0") && n.length === 10) {
+    n = "94" + n.slice(1);
+  }
+  return n;
+};
 
-    if (!userId || !apiKey) {
-      // In development, log the OTP instead of sending
+// ── Send WhatsApp message via WAClient ────────────────────────────────────────
+const sendWhatsApp = (whatsappNumber, message) => {
+  return new Promise((resolve, reject) => {
+    const instanceId   = process.env.WACLIENT_INSTANCE_ID;
+    const accessToken  = process.env.WACLIENT_ACCESS_TOKEN;
+
+    if (!instanceId || !accessToken) {
       if (process.env.NODE_ENV === "development") {
-        console.log(`[OTP DEV] SMS to ${phone}: ${message}`);
+        console.log(`\n[OTP DEV] WhatsApp to ${whatsappNumber}:\n${message}\n`);
         return resolve();
       }
       return reject(
         new AppError(
-          "SMS service is not configured. Please set TEXTLK_USER_ID and TEXTLK_API_KEY.",
+          "WhatsApp service is not configured. Please set WACLIENT_INSTANCE_ID and WACLIENT_ACCESS_TOKEN.",
           HTTP_STATUS.INTERNAL_SERVER_ERROR
         )
       );
     }
 
-    // Normalise phone: text.lk expects local format without leading +
-    const normalisedPhone = phone.replace(/^\+94/, "0").replace(/\s+/g, "");
+    const normalisedNumber = normaliseWhatsAppNumber(whatsappNumber);
 
     const payload = JSON.stringify({
-      user_id: userId,
-      api_key: apiKey,
-      sender_id: senderId,
-      to: normalisedPhone,
+      number:       normalisedNumber,
+      type:         "text",
       message,
+      instance_id:  instanceId,
+      access_token: accessToken,
     });
 
     const options = {
-      hostname: "app.text.lk",
-      path: "/api/v3/sms/send",
-      method: "POST",
+      hostname: "api.waclient.com",
+      path:     "/send",
+      method:   "POST",
       headers: {
-        "Content-Type": "application/json",
+        "Content-Type":   "application/json",
         "Content-Length": Buffer.byteLength(payload),
       },
     };
@@ -91,19 +93,19 @@ const sendSms = (phone, message) => {
           } else {
             reject(
               new AppError(
-                `SMS send failed: ${parsed.message || "Unknown error"}`,
+                `WhatsApp send failed: ${parsed.message || "Unknown error"}`,
                 HTTP_STATUS.INTERNAL_SERVER_ERROR
               )
             );
           }
         } catch {
-          reject(new AppError("Invalid response from SMS provider.", HTTP_STATUS.INTERNAL_SERVER_ERROR));
+          reject(new AppError("Invalid response from WAClient.", HTTP_STATUS.INTERNAL_SERVER_ERROR));
         }
       });
     });
 
     req.on("error", (err) => {
-      reject(new AppError(`SMS network error: ${err.message}`, HTTP_STATUS.INTERNAL_SERVER_ERROR));
+      reject(new AppError(`WhatsApp network error: ${err.message}`, HTTP_STATUS.INTERNAL_SERVER_ERROR));
     });
 
     req.write(payload);
@@ -111,83 +113,90 @@ const sendSms = (phone, message) => {
   });
 };
 
+// ── Send OTP ──────────────────────────────────────────────────────────────────
 /**
- * Generate an OTP, save it (hashed expiry) to the user record, and send via SMS.
+ * Generate an OTP, save it to the user record, and send via WhatsApp.
  *
- * @param {string} phone - Phone number to send OTP to
+ * @param {string} whatsappNumber - WhatsApp number (any format)
  * @returns {Promise<void>}
  */
-const sendOtp = async (phone) => {
-  const user = await User.findOne({ phone }).select("+otpCode +otpExpiry");
+const sendOtp = async (whatsappNumber) => {
+  // Find user by whatsappNumber field
+  const user = await User.findOne({ whatsappNumber }).select("+otpCode +otpExpiry");
 
   if (!user) {
     throw new AppError(
-      "No account found with this phone number.",
+      "No account found with this WhatsApp number.",
       HTTP_STATUS.NOT_FOUND
     );
   }
 
-  // Rate limit: do not resend if a valid OTP was sent in the last 60 seconds
-  if (user.otpExpiry && user.otpExpiry > new Date(Date.now() - 60 * 1000)) {
-    const secondsLeft = Math.ceil((user.otpExpiry - (Date.now() - OTP_EXPIRY_MINUTES * 60 * 1000)) / 1000);
-    if (secondsLeft > (OTP_EXPIRY_MINUTES * 60 - 60)) {
+  // Rate limit: block resend within 60 seconds
+  if (user.otpExpiry) {
+    const sentAt = user.otpExpiry.getTime() - OTP_EXPIRY_MINUTES * 60 * 1000;
+    const secondsSinceSent = (Date.now() - sentAt) / 1000;
+    if (secondsSinceSent < 60) {
       throw new AppError(
-        "Please wait 60 seconds before requesting a new OTP.",
+        `Please wait ${Math.ceil(60 - secondsSinceSent)} seconds before requesting a new OTP.`,
         HTTP_STATUS.BAD_REQUEST
       );
     }
   }
 
-  const otp = generateOtp();
+  const otp    = generateOtp();
   const expiry = new Date(Date.now() + OTP_EXPIRY_MINUTES * 60 * 1000);
 
-  // Save OTP and expiry to user record
-  user.otpCode = otp;
+  user.otpCode   = otp;
   user.otpExpiry = expiry;
   await user.save({ validateBeforeSave: false });
 
-  const message = `Your BinGo verification code is: ${otp}. Valid for ${OTP_EXPIRY_MINUTES} minutes. Do not share this code.`;
-  await sendSms(phone, message);
+  const message =
+    `🔐 *BinGo Verification Code*\n\n` +
+    `Your OTP is: *${otp}*\n\n` +
+    `Valid for ${OTP_EXPIRY_MINUTES} minutes.\n` +
+    `Do not share this code with anyone.`;
+
+  await sendWhatsApp(whatsappNumber, message);
 };
 
+// ── Verify OTP ────────────────────────────────────────────────────────────────
 /**
- * Verify OTP for a given phone number.
- * Marks phone as verified and clears OTP fields on success.
+ * Verify OTP for a given WhatsApp number.
+ * Marks whatsappVerified as true and clears OTP fields on success.
  *
- * @param {string} phone - Phone number
- * @param {string} otp   - OTP entered by user
- * @returns {Promise<User>} - Updated user document
+ * @param {string} whatsappNumber
+ * @param {string} otp
+ * @returns {Promise<User>}
  */
-const verifyOtp = async (phone, otp) => {
-  const user = await User.findOne({ phone }).select("+otpCode +otpExpiry");
+const verifyOtp = async (whatsappNumber, otp) => {
+  const user = await User.findOne({ whatsappNumber }).select("+otpCode +otpExpiry");
 
   if (!user) {
-    throw new AppError("No account found with this phone number.", HTTP_STATUS.NOT_FOUND);
+    throw new AppError("No account found with this WhatsApp number.", HTTP_STATUS.NOT_FOUND);
   }
 
   if (!user.otpCode || !user.otpExpiry) {
-    throw new AppError("No OTP has been sent to this number. Please request one.", HTTP_STATUS.BAD_REQUEST);
+    throw new AppError("No OTP has been sent. Please request one first.", HTTP_STATUS.BAD_REQUEST);
   }
 
   if (new Date() > user.otpExpiry) {
-    // Clear expired OTP
-    user.otpCode = null;
+    user.otpCode   = null;
     user.otpExpiry = null;
     await user.save({ validateBeforeSave: false });
     throw new AppError("OTP has expired. Please request a new one.", HTTP_STATUS.BAD_REQUEST);
   }
 
   if (user.otpCode !== otp.trim()) {
-    throw new AppError("Invalid OTP. Please try again.", HTTP_STATUS.BAD_REQUEST);
+    throw new AppError("Invalid OTP. Please check and try again.", HTTP_STATUS.BAD_REQUEST);
   }
 
-  // OTP is valid — mark phone as verified and clear OTP fields
-  user.phoneVerified = true;
-  user.otpCode = null;
-  user.otpExpiry = null;
+  // Success — mark verified and clear OTP
+  user.whatsappVerified = true;
+  user.otpCode          = null;
+  user.otpExpiry        = null;
   await user.save({ validateBeforeSave: false });
 
   return user;
 };
 
-module.exports = { sendOtp, verifyOtp, generateOtp, sendSms };
+module.exports = { sendOtp, verifyOtp, generateOtp, sendWhatsApp, normaliseWhatsAppNumber };

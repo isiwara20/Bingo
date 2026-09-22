@@ -31,7 +31,8 @@ const OTP_LENGTH = 6;
 const RESEND_COUNTDOWN = 60; // seconds
 
 const OtpVerificationScreen = ({ route, navigation }) => {
-  const { phone } = route.params || {};
+  const { whatsappNumber, phone } = route.params || {};
+  const contactNumber = whatsappNumber || phone;
   const { updateUser } = useAuth();
 
   // 6 individual digit inputs
