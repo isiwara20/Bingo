@@ -1,18 +1,14 @@
 /**
  * BinGo – DirectPay Payment Screen
  *
- * Uses the official react-native-directpay-ipg SDK.
- * Flow:
- *   1. Call server POST /payment/session  → get dataString + signature
- *   2. Pass to IPGComponent               → DirectPay handles card UI
- *   3. Receive callback                   → call POST /plans/select
- *   4. Update user in context             → RootNavigator shows dashboard
+ * Uses react-native-webview to load DirectPay's hosted payment page.
+ * The server generates the payload (base64) + HmacSHA256 signature.
+ * Creates a gateway session and opens its returned checkout link.
  *
- * Merchant ID : PI11698
- * Stage       : PROD
+ * Merchant: PI11698  Stage: PROD
  *
  * Route params:
- *   plan      {object}   – plan being purchased
+ *   plan {object} – plan being purchased
  */
 
 import React, { useEffect, useRef, useState } from "react";
@@ -21,149 +17,164 @@ import {
   ActivityIndicator, Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { WebView } from "react-native-webview";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
-import { IPGComponent, IPGStage } from "react-native-directpay-ipg";
 import { useAuth } from "../context/AuthContext";
 import { selectPlan } from "../services/planService";
 import api from "../api/apiClient";
 import COLORS from "../constants/colors";
+import { createDirectPaySession } from "../services/directPaySession";
+
 
 const PaymentScreen = ({ route, navigation }) => {
   const { plan } = route.params || {};
   const { user, updateUser } = useAuth();
 
-  const [sessionData, setSessionData]   = useState(null);
-  const [loading, setLoading]           = useState(true);
-  const [processing, setProcessing]     = useState(false);
-  const [error, setError]               = useState(null);
+  const [sessionData, setSessionData] = useState(null);
+  const [checkoutUrl, setCheckoutUrl] = useState(null);
+  const [loading, setLoading]         = useState(true);
+  const [processing, setProcessing]   = useState(false);
+  const [error, setError]             = useState(null);
+  const webRef = useRef(null);
 
-  // ── Fetch payment session from server ─────────────────────────────────────
+  // ── Get session from server ──────────────────────────────────────────────
   useEffect(() => {
-    if (!plan) return;
+    if (!plan) {
+      setError("No plan selected. Go back and select a plan.");
+      setLoading(false);
+      return;
+    }
     (async () => {
       try {
         const res = await api.post("/payment/session", { planKey: plan.key });
-        setSessionData(res.data.data);
+        const session = res.data.data;
+        const link = await createDirectPaySession(session);
+        setSessionData(session);
+        setCheckoutUrl(link);
       } catch (e) {
-        setError(e.message || "Could not initialise payment. Please try again.");
+        setError(e.message || "Could not initialise payment.");
       } finally {
         setLoading(false);
       }
     })();
   }, [plan]);
 
-  // ── Handle DirectPay SDK callback ─────────────────────────────────────────
-  const handlePaymentCallback = async (data) => {
-    console.log("[DirectPay Response]", JSON.stringify(data));
+  // ── Handle navigation changes from WebView ──────────────────────────────
+  // DirectPay redirects to response_url on completion
+  const handleNavChange = async (navState) => {
+    const url = navState.url || "";
 
-    try {
-      const parsed = typeof data === "string" ? JSON.parse(data) : data;
-      const statusCode = parsed?.status_code || parsed?.data?.status_code;
-
-      if (statusCode === "00") {
-        // Payment successful
-        setProcessing(true);
-        const result = await selectPlan(plan.key, parsed?.data?.payment_id || null);
+    // Payment success — response_url returns to our server callback
+    // Server callback URL: http://localhost:5000/api/v1/payment/callback
+    // We detect success when DirectPay redirects to the callback URL
+    if (url.includes("/payment/callback") && /[?&]status_code=00(?:&|$)/.test(url)) {
+      setProcessing(true);
+      try {
+        const result = await selectPlan(plan.key);
         await updateUser({ ...user, ...result, hasSelectedPlan: true, plan: plan.key });
-        // RootNavigator auto-switches to Main (no hasSelectedPlan gate)
         navigation.goBack();
-      } else if (statusCode === "01" || statusCode === "02") {
-        Alert.alert(
-          "Payment Cancelled",
-          "Your payment was cancelled. You can try again.",
-          [{ text: "OK", onPress: () => navigation.goBack() }]
-        );
-      } else {
-        Alert.alert(
-          "Payment Failed",
-          parsed?.message || "Your payment could not be processed. Please try again.",
-          [{ text: "OK" }]
-        );
+      } catch (e) {
+        Alert.alert("Error", e.message || "Plan activation failed.");
+        setProcessing(false);
       }
-    } catch (e) {
-      Alert.alert("Error", e.message || "Something went wrong after payment.");
-    } finally {
-      setProcessing(false);
+      return;
+    }
+
+    // Payment cancelled or failed
+    if (
+      url.includes("status_code=01") ||
+      url.includes("status_code=02") ||
+      url.includes("cancel") ||
+      url.includes("failed")
+    ) {
+      Alert.alert(
+        "Payment Unsuccessful",
+        "Your payment was not completed. You can try again.",
+        [{ text: "Go Back", onPress: () => navigation.goBack() }]
+      );
     }
   };
 
-  if (!plan) {
-    return (
-      <SafeAreaView style={styles.container}>
-        <Text style={styles.errorTxt}>No plan selected.</Text>
-      </SafeAreaView>
-    );
-  }
-
-  const color = plan.color || COLORS.PRIMARY;
+  const color = plan?.color || COLORS.PRIMARY;
 
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={s.container}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={s.header}>
         <TouchableOpacity
           onPress={() => navigation.goBack()}
-          style={styles.backBtn}
+          style={s.backBtn}
           accessibilityRole="button"
           accessibilityLabel="Go back"
+          disabled={processing}
         >
           <Icon name="arrow-left" size={22} color={COLORS.TEXT_PRIMARY} />
         </TouchableOpacity>
-        <View>
-          <Text style={styles.headerTitle}>
-            {plan.name} Plan — LKR {plan.price.toLocaleString()}
+        <View style={{ flex: 1 }}>
+          <Text style={s.headerTitle}>
+            {plan?.name} Plan · LKR {plan?.price?.toLocaleString()}
           </Text>
-          <Text style={styles.headerSub}>Secured by DirectPay</Text>
+          <Text style={s.headerSub}>🔒 Secured by DirectPay</Text>
         </View>
-        <Icon name="shield-check" size={22} color="#4CAF50" />
+        <Icon name="shield-lock" size={22} color="#4CAF50" />
       </View>
 
-      {/* Loading session */}
+      {/* Initialising */}
       {loading && (
-        <View style={styles.center}>
+        <View style={s.center}>
           <ActivityIndicator size="large" color={color} />
-          <Text style={styles.loadingTxt}>Initialising payment…</Text>
+          <Text style={s.loadingTxt}>Initialising secure payment…</Text>
         </View>
       )}
 
-      {/* Error state */}
+      {/* Error */}
       {error && !loading && (
-        <View style={styles.center}>
-          <Icon name="alert-circle-outline" size={48} color={COLORS.ERROR} />
-          <Text style={styles.errorTxt}>{error}</Text>
+        <View style={s.center}>
+          <Icon name="alert-circle-outline" size={52} color={COLORS.ERROR} />
+          <Text style={s.errorTxt}>{error}</Text>
           <TouchableOpacity
-            style={[styles.retryBtn, { borderColor: color }]}
+            style={[s.retryBtn, { borderColor: color }]}
             onPress={() => navigation.goBack()}
           >
-            <Text style={[styles.retryBtnTxt, { color }]}>Go Back</Text>
+            <Text style={[s.retryBtnTxt, { color }]}>← Go Back</Text>
           </TouchableOpacity>
         </View>
       )}
 
-      {/* DirectPay IPG Component */}
+      {/* WebView payment */}
       {!loading && !error && sessionData && (
-        <IPGComponent
-          stage={IPGStage.PROD}
-          signature={sessionData.signature}
-          dataString={sessionData.dataString}
-          callback={handlePaymentCallback}
+        <WebView
+          ref={webRef}
+          source={{ uri: checkoutUrl }}
+          onError={() => setError("Could not connect to DirectPay. Check your internet connection and try again.")}
+          onHttpError={() => setError("DirectPay could not load the payment page. Please try again later.")}
+          onNavigationStateChange={handleNavChange}
+          style={{ flex: 1 }}
+          javaScriptEnabled
+          domStorageEnabled
+          startInLoadingState
+          renderLoading={() => (
+            <View style={s.center}>
+              <ActivityIndicator size="large" color={color} />
+            </View>
+          )}
         />
       )}
 
       {/* Processing overlay */}
       {processing && (
-        <View style={styles.processingOverlay}>
+        <View style={s.overlay}>
           <ActivityIndicator size="large" color={color} />
-          <Text style={styles.processingTxt}>Activating {plan.name} plan…</Text>
+          <Text style={s.processingTxt}>Activating {plan?.name} plan…</Text>
         </View>
       )}
 
-      {/* Test card info banner */}
-      {!loading && !error && (
-        <View style={styles.testBanner}>
-          <Icon name="information-outline" size={14} color="#E65100" />
-          <Text style={styles.testBannerTxt}>
-            Test: 5123 4500 0000 0008 · CVC: 123 · Any future date
+      {/* Test info */}
+      {!loading && !error && sessionData?.stage === "DEV" && (
+        <View style={s.testBanner}>
+          <Icon name="information-outline" size={13} color="#E65100" />
+          <Text style={s.testTxt}>
+            Test card: 5123 4500 0000 0008  ·  CVC: 123  ·  Any future date
           </Text>
         </View>
       )}
@@ -171,7 +182,7 @@ const PaymentScreen = ({ route, navigation }) => {
   );
 };
 
-const styles = StyleSheet.create({
+const s = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.BACKGROUND },
 
   header: {
@@ -182,31 +193,35 @@ const styles = StyleSheet.create({
   },
   backBtn: { padding: 4 },
   headerTitle: { fontSize: 15, fontWeight: "700", color: COLORS.TEXT_PRIMARY },
-  headerSub:   { fontSize: 11, color: COLORS.TEXT_SECONDARY },
+  headerSub:   { fontSize: 11, color: COLORS.TEXT_SECONDARY, marginTop: 1 },
 
-  center: { flex: 1, justifyContent: "center", alignItems: "center", gap: 12, padding: 32 },
+  center: {
+    flex: 1, justifyContent: "center",
+    alignItems: "center", gap: 14, padding: 32,
+  },
   loadingTxt: { fontSize: 14, color: COLORS.TEXT_SECONDARY },
-  errorTxt:   { fontSize: 14, color: COLORS.ERROR, textAlign: "center" },
+  errorTxt:   { fontSize: 14, color: COLORS.ERROR, textAlign: "center", lineHeight: 20 },
   retryBtn: {
     borderWidth: 1.5, borderRadius: 10,
-    paddingHorizontal: 20, paddingVertical: 10, marginTop: 8,
+    paddingHorizontal: 24, paddingVertical: 10,
   },
   retryBtnTxt: { fontSize: 14, fontWeight: "600" },
 
-  processingOverlay: {
+  overlay: {
     ...StyleSheet.absoluteFillObject,
-    backgroundColor: "rgba(255,255,255,0.92)",
+    backgroundColor: "rgba(255,255,255,0.93)",
     justifyContent: "center", alignItems: "center",
-    gap: 12, zIndex: 99,
+    gap: 14, zIndex: 99,
   },
   processingTxt: { fontSize: 15, color: COLORS.TEXT_SECONDARY, fontWeight: "600" },
 
   testBanner: {
     flexDirection: "row", alignItems: "center", gap: 6,
-    backgroundColor: "#FFF3E0", paddingHorizontal: 16, paddingVertical: 8,
+    backgroundColor: "#FFF3E0",
+    paddingHorizontal: 14, paddingVertical: 7,
     borderTopWidth: 1, borderTopColor: "#FFE0B2",
   },
-  testBannerTxt: { fontSize: 11, color: "#E65100", flex: 1 },
+  testTxt: { fontSize: 11, color: "#E65100", flex: 1 },
 });
 
 export default PaymentScreen;

@@ -12,7 +12,7 @@
 import React, { useCallback, useEffect, useRef, useState } from "react";
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  ActivityIndicator, Alert, Animated, Dimensions,
+  ActivityIndicator, Alert, Animated, Dimensions, Image,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
@@ -192,12 +192,20 @@ const PlanSelectionScreen = ({ navigation }) => {
     <SafeAreaView style={s.container}>
       {/* Header */}
       <View style={s.header}>
+        <Image
+          source={require("../../assets/logo.png")}
+          style={s.logo}
+          resizeMode="contain"
+          accessibilityLabel="BinGo logo"
+        />
+        <View style={s.headerRow}>
         <Icon name="crown" size={28} color={COLORS.SECONDARY} />
         <View style={{ flex: 1 }}>
           <Text style={s.headerTitle}>Choose Your Plan</Text>
           <Text style={s.headerSub}>
             Welcome, {user?.name?.split(" ")[0]}! Select a plan to get started.
           </Text>
+        </View>
         </View>
       </View>
 
@@ -249,11 +257,13 @@ const s = StyleSheet.create({
   loadingTxt: { color: COLORS.TEXT_SECONDARY, fontSize: 14 },
 
   header: {
-    flexDirection: "row", alignItems: "center", gap: 12,
+    gap: 12,
     paddingHorizontal: 20, paddingVertical: 16,
     backgroundColor: COLORS.SURFACE,
     borderBottomWidth: 1, borderBottomColor: COLORS.BORDER,
   },
+  logo: { width: 128, height: 48, alignSelf: "center" },
+  headerRow: { flexDirection: "row", alignItems: "center", gap: 12 },
   headerTitle: { fontSize: 20, fontWeight: "800", color: COLORS.TEXT_PRIMARY },
   headerSub:   { fontSize: 13, color: COLORS.TEXT_SECONDARY, marginTop: 1 },
 
