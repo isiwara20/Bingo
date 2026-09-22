@@ -6,6 +6,9 @@ buildscript {
         targetSdkVersion = 35
         ndkVersion = "26.1.10909125"
         kotlinVersion = "1.9.22"
+        // Pin Google Play Services versions — all libraries must use the same version
+        googlePlayServicesVersion = "21.0.1"
+        playServicesLocationVersion = "21.0.1"
     }
     repositories {
         google()

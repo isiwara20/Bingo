@@ -39,6 +39,10 @@ import RewardsScreen            from "../screens/RewardsScreen";
 import ProfileScreen            from "../screens/ProfileScreen";
 import SettingsScreen           from "../screens/SettingsScreen";
 import PaymentScreen            from "../screens/PaymentScreen";
+import ResidentProfileScreen    from "../screens/profiles/ResidentProfileScreen";
+import CommunityLeaderProfileScreen from "../screens/profiles/CommunityLeaderProfileScreen";
+import WasteAuthorityProfileScreen  from "../screens/profiles/WasteAuthorityProfileScreen";
+import ResidentVerificationScreen   from "../screens/profiles/ResidentVerificationScreen";
 
 const Tab   = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
@@ -92,19 +96,32 @@ const MapStack = () => (
   </Stack.Navigator>
 );
 
-const ProfileStack = () => (
-  <Stack.Navigator screenOptions={{ headerShown: false }}>
-    <Stack.Screen name="ProfileMain" component={ProfileScreen} />
-    <Stack.Screen name="Settings"    component={SettingsScreen} />
-  </Stack.Navigator>
-);
+// ── Role → Profile screen ─────────────────────────────────────────────────────
+const ROLE_PROFILES = {
+  resident:         ResidentProfileScreen,
+  community_leader: CommunityLeaderProfileScreen,
+  waste_authority:  WasteAuthorityProfileScreen,
+};
+
+const makeProfileStack = (role) => {
+  const ProfileMain = ROLE_PROFILES[role] || ProfileScreen;
+  const ProfileStack = () => (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="ProfileMain"           component={ProfileMain} />
+      <Stack.Screen name="Settings"              component={SettingsScreen} />
+      <Stack.Screen name="ResidentVerification"  component={ResidentVerificationScreen} />
+    </Stack.Navigator>
+  );
+  return ProfileStack;
+};
 
 // ── Main Tab Navigator ────────────────────────────────────────────────────────
 const MainNavigator = () => {
   const { user } = useAuth();
   const insets = useSafeAreaInsets();
   const role = user?.role || "resident";
-  const HomeStack = React.useMemo(() => makeHomeStack(role), [role]);
+  const HomeStack    = React.useMemo(() => makeHomeStack(role), [role]);
+  const ProfileStack = React.useMemo(() => makeProfileStack(role), [role]);
 
   return (
     <Tab.Navigator

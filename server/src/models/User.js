@@ -161,6 +161,46 @@ const userSchema = new mongoose.Schema(
       type: Date,
       default: null,
     },
+
+    // ── Profile verification (residents only) ─────────────────────────────
+    profileVerified: {
+      type: Boolean,
+      default: false,
+    },
+
+    verificationStatus: {
+      type: String,
+      enum: ["unverified", "pending", "verified", "rejected"],
+      default: "unverified",
+    },
+
+    residenceImage: {
+      type: String, // base64 or URL
+      default: null,
+    },
+
+    faceImage: {
+      type: String, // base64 or URL
+      default: null,
+    },
+
+    verifiedAt: {
+      type: Date,
+      default: null,
+    },
+
+    verificationLocation: {
+      type: {
+        type: String,
+        enum: ["Point"],
+        default: undefined,
+      },
+      coordinates: {
+        type: [Number], // [longitude, latitude]
+        default: undefined,
+      },
+      address: { type: String, default: null },
+    },
   },
   {
     timestamps: true, // adds createdAt and updatedAt automatically
