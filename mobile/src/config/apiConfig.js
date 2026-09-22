@@ -13,12 +13,13 @@
  * Make sure your phone and PC are on the same Wi-Fi network.
  */
 
-// Deployed backend — works from any network (phone, WiFi, mobile data)
-// Replace with your Railway/Render URL after deployment
+// ADB reverse tunnels localhost:5000 on the phone to localhost:5000 on the PC.
+// This works over USB regardless of Wi-Fi network, IP changes, or firewall rules.
+// Run: adb reverse tcp:5000 tcp:5000  (already done automatically at startup)
 const API_BASE_URL =
-  process.env.API_BASE_URL || "http://192.168.1.8:5000/api/v1";
+  process.env.API_BASE_URL || "http://localhost:5000/api/v1";
 
 export default {
   API_BASE_URL,
-  TIMEOUT: 15000, // 15 seconds
+  TIMEOUT: 30000, // 30 seconds
 };
