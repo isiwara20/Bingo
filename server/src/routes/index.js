@@ -54,4 +54,6 @@ router.use("/payment",       paymentRoutes);
 router.use("/admin",         adminRoutes);
 router.use("/plans",         planRoutes);
 
+router.use("/goals", require("./goalRoutes"));
+
 module.exports = router;

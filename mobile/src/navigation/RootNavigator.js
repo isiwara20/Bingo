@@ -15,6 +15,7 @@ import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useAuth }        from "../context/AuthContext";
 import AuthNavigator      from "./AuthNavigator";
 import MainNavigator      from "./MainNavigator";
+import GoalsNavigator from "./GoalsNavigator";
 import AdminNavigator     from "./AdminNavigator";
 import PlanSelectionScreen from "../screens/PlanSelectionScreen";
 import COLORS from "../constants/colors";
@@ -63,6 +64,7 @@ const RootNavigator = () => {
   return (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="Main" component={MainNavigator} />
+      <Stack.Screen name="EcoGoals" component={GoalsNavigator} />
     </Stack.Navigator>
   );
 };

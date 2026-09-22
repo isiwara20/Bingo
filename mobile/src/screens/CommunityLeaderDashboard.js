@@ -14,6 +14,7 @@ import { useAuth } from "../context/AuthContext";
 import { logout as logoutApi } from "../services/authService";
 import DashboardHeader from "../components/DashboardHeader";
 import COLORS from "../constants/colors";
+import GoalSummaryCard from "../components/goals/GoalSummaryCard";
 
 const SectionTitle = ({ children }) => <Text style={styles.sectionTitle}>{children}</Text>;
 
@@ -83,6 +84,8 @@ const CommunityLeaderDashboard = ({ navigation }) => {
           <RefreshControl refreshing={refresh} onRefresh={() => { setRefresh(true); load(); }} tintColor="#1565C0" />
         }
       >
+        <GoalSummaryCard navigation={navigation} />
+
         {/* Community identity card */}
         <View style={styles.communityCard}>
           <Text style={styles.communityEmoji}>🏘️</Text>
