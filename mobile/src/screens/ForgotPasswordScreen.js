@@ -1,158 +1,721 @@
+/**
+ * BinGo – Forgot Password Screen
+ *
+ * 3-step password reset flow:
+ *   Step 0 – Enter email
+ *   Step 1 – Enter 6-digit WhatsApp OTP
+ *   Step 2 – Set new password
+ *   Success – Animated confirmation → auto-navigate to Login
+ *
+ * Matches the design language of LoginScreen and RegisterScreen.
+ */
+
 import React, { useEffect, useRef, useState } from "react";
 import {
-  View, Text, StyleSheet, TouchableOpacity, TextInput, ScrollView,
-  KeyboardAvoidingView, Platform, Image, Animated, ActivityIndicator,
-  AccessibilityInfo, Keyboard,
+  View, Text, TextInput, TouchableOpacity, StyleSheet,
+  ActivityIndicator, KeyboardAvoidingView, Platform,
+  ScrollView, Image, Animated, Pressable,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
-import { requestPasswordReset, verifyPasswordReset, completePasswordReset } from "../services/authService";
+import {
+  requestPasswordReset,
+  verifyPasswordReset,
+  completePasswordReset,
+} from "../services/authService";
+import COLORS from "../constants/colors";
 
-const GREEN = "#185B43";
-const LABELS = ["Your email", "Verify code", "New password"];
-const TITLES = ["Let’s get you\nback in.", "Check your\nWhatsApp.", "A fresh start.\nA new password."];
-const ICONS = ["email-outline", "whatsapp", "lock-reset"];
+const OTP_LENGTH = 6;
+const RESEND_WAIT = 60;
 
-const Field = ({ label, icon, children, ...props }) => (
-  <View style={s.fieldGroup}>
-    <Text style={s.fieldLabel}>{label}</Text>
-    <View style={s.inputWrap}><Icon name={icon} size={21} color="#72877B" /><TextInput style={s.input} placeholderTextColor="#9AA79F" accessibilityLabel={label} {...props} />{children}</View>
+// ── Password strength ─────────────────────────────────────────────────────────
+const PW_RULES = [
+  { key: "len",   label: "At least 8 characters",     test: v => v.length >= 8 },
+  { key: "upper", label: "One uppercase letter",       test: v => /[A-Z]/.test(v) },
+  { key: "lower", label: "One lowercase letter",       test: v => /[a-z]/.test(v) },
+  { key: "num",   label: "One number",                 test: v => /[0-9]/.test(v) },
+];
+
+const PasswordStrength = ({ value }) => {
+  if (!value) return null;
+  const passed = PW_RULES.filter(r => r.test(value)).length;
+  const colors = ["#F44336", "#FF9800", "#FFC107", "#4CAF50"];
+  const labels = ["Weak", "Fair", "Good", "Strong"];
+  return (
+    <View style={ps.container}>
+      <View style={ps.barRow}>
+        {[0, 1, 2, 3].map(i => (
+          <View key={i} style={[ps.bar, { backgroundColor: i < passed ? colors[passed - 1] : COLORS.BORDER }]} />
+        ))}
+        <Text style={[ps.label, { color: colors[passed - 1] || COLORS.TEXT_DISABLED }]}>
+          {passed > 0 ? labels[passed - 1] : ""}
+        </Text>
+      </View>
+      <View style={ps.rules}>
+        {PW_RULES.map(r => {
+          const ok = r.test(value);
+          return (
+            <View key={r.key} style={ps.ruleRow}>
+              <Icon name={ok ? "check-circle" : "circle-outline"} size={13} color={ok ? COLORS.SUCCESS : COLORS.TEXT_DISABLED} />
+              <Text style={[ps.ruleTxt, ok && { color: COLORS.SUCCESS }]}>{r.label}</Text>
+            </View>
+          );
+        })}
+      </View>
+    </View>
+  );
+};
+const ps = StyleSheet.create({
+  container: { gap: 8, marginTop: 6 },
+  barRow: { flexDirection: "row", alignItems: "center", gap: 4 },
+  bar: { flex: 1, height: 5, borderRadius: 3 },
+  label: { fontSize: 11, fontWeight: "700", marginLeft: 6, minWidth: 48 },
+  rules: { gap: 4 },
+  ruleRow: { flexDirection: "row", alignItems: "center", gap: 6 },
+  ruleTxt: { fontSize: 11, color: COLORS.TEXT_DISABLED },
+});
+
+// ── Password field with eye toggle ────────────────────────────────────────────
+const PasswordField = ({ label, value, onChangeText, error, inputRef, ...props }) => {
+  const [visible, setVisible] = useState(false);
+  return (
+    <View style={s.inputGroup}>
+      <Text style={s.label}>{label}</Text>
+      <View style={[s.pwRow, error && s.inputError]}>
+        <TextInput
+          ref={inputRef}
+          style={s.pwInput}
+          value={value}
+          onChangeText={onChangeText}
+          secureTextEntry={!visible}
+          placeholderTextColor={COLORS.TEXT_DISABLED}
+          {...props}
+        />
+        <Pressable
+          onPress={() => setVisible(v => !v)}
+          style={s.eyeBtn}
+          hitSlop={10}
+          accessibilityRole="button"
+          accessibilityLabel={visible ? "Hide password" : "Show password"}
+        >
+          <Icon name={visible ? "eye-off-outline" : "eye-outline"} size={22} color={COLORS.TEXT_SECONDARY} />
+        </Pressable>
+      </View>
+      {error ? <Text style={s.errorText}>{error}</Text> : null}
+    </View>
+  );
+};
+
+// ── Step indicator ────────────────────────────────────────────────────────────
+const STEP_LABELS = ["Email", "Verify", "Password"];
+
+const StepIndicator = ({ current }) => (
+  <View style={s.stepRow}>
+    {STEP_LABELS.map((label, i) => (
+      <React.Fragment key={label}>
+        <View style={s.stepItem}>
+          <View style={[s.stepCircle, i <= current && s.stepCircleActive]}>
+            {i < current
+              ? <Icon name="check" size={14} color="#fff" />
+              : <Text style={[s.stepNum, i <= current && s.stepNumActive]}>{i + 1}</Text>
+            }
+          </View>
+          <Text style={[s.stepLabel, i === current && s.stepLabelActive]}>{label}</Text>
+        </View>
+        {i < STEP_LABELS.length - 1 && (
+          <View style={[s.stepLine, i < current && s.stepLineDone]} />
+        )}
+      </React.Fragment>
+    ))}
   </View>
 );
 
-function ResetSuccess({ navigation }) {
-  const values = useRef([new Animated.Value(0), new Animated.Value(0), new Animated.Value(0)]).current;
-  const scale = useRef(new Animated.Value(0.6)).current;
+// ── Success screen ────────────────────────────────────────────────────────────
+const SuccessView = ({ navigation }) => {
+  const scale   = useRef(new Animated.Value(0)).current;
+  const opacity = useRef(new Animated.Value(0)).current;
+  const slideY  = useRef(new Animated.Value(20)).current;
+
   useEffect(() => {
-    let disposed = false;
-    let animation;
-    AccessibilityInfo.isReduceMotionEnabled().then(reduced => {
-      if (disposed) return;
-      if (reduced) { values.forEach(v => v.setValue(1)); scale.setValue(1); return; }
-      animation = Animated.parallel([
-        Animated.spring(scale, { toValue: 1, friction: 5, useNativeDriver: true }),
-        Animated.stagger(450, values.map(value => Animated.timing(value, { toValue: 1, duration: 400, useNativeDriver: true }))),
-      ]);
-      animation.start();
-    }).catch(() => { if (!disposed) { values.forEach(v => v.setValue(1)); scale.setValue(1); } });
-    const timer = setTimeout(() => navigation.reset({ index: 0, routes: [{ name: "Login" }] }), 4500);
-    return () => { disposed = true; clearTimeout(timer); animation?.stop(); };
-  }, [navigation, scale, values]);
+    Animated.sequence([
+      Animated.timing(opacity, { toValue: 1, duration: 300, useNativeDriver: true }),
+      Animated.spring(scale,   { toValue: 1, friction: 5, tension: 80, useNativeDriver: true }),
+      Animated.timing(slideY,  { toValue: 0, duration: 300, useNativeDriver: true }),
+    ]).start();
+    const t = setTimeout(() => navigation.reset({ index: 0, routes: [{ name: "Login" }] }), 3500);
+    return () => clearTimeout(t);
+  }, []);
+
   return (
-    <View style={s.success}>
-      <Animated.View style={[s.successCircle, { transform: [{ scale }] }]}><Icon name="check-decagram" size={66} color={GREEN} /></Animated.View>
-      <Text style={s.eyebrow}>YOU’RE ALL SET</Text>
-      <Text style={[s.title, s.centerText]} accessibilityRole="header">Password reset.</Text>
-      <Text style={[s.description, s.centerText]} accessibilityLiveRegion="polite">Your new password is ready. Let’s get you signed in again.</Text>
-      <View style={s.successSteps}>{["WhatsApp code verified", "New password saved securely", "Ready to sign in"].map((label, i) => <Animated.View key={label} style={[s.successRow, { opacity: values[i], transform: [{ translateY: values[i].interpolate({ inputRange: [0, 1], outputRange: [12, 0] }) }] }]}><Icon name="check-circle" size={22} color={GREEN} /><Text style={s.successLabel}>{label}</Text></Animated.View>)}</View>
-      <TouchableOpacity style={s.primary} accessibilityRole="button" onPress={() => navigation.reset({ index: 0, routes: [{ name: "Login" }] })}><Text style={s.primaryText}>Back to sign in</Text><Icon name="arrow-right" size={21} color="white" /></TouchableOpacity>
-      <Text style={s.helper}>Taking you to sign in automatically…</Text>
-    </View>
+    <Animated.View style={[s.successContainer, { opacity }]}>
+      <Animated.View style={[s.successCircle, { transform: [{ scale }] }]}>
+        <Icon name="lock-check" size={52} color={COLORS.PRIMARY} />
+      </Animated.View>
+      <Animated.View style={{ transform: [{ translateY: slideY }], alignItems: "center", gap: 8 }}>
+        <Text style={s.successTitle}>Password Reset!</Text>
+        <Text style={s.successSub}>
+          Your password has been updated successfully.{"\n"}Sign in with your new password.
+        </Text>
+      </Animated.View>
+
+      {/* Steps */}
+      <View style={s.successSteps}>
+        {[
+          { icon: "email-check-outline",  label: "Email verified" },
+          { icon: "whatsapp",             label: "WhatsApp code confirmed" },
+          { icon: "shield-check",         label: "Password saved securely" },
+        ].map((item, i) => (
+          <View key={i} style={s.successStep}>
+            <View style={s.successStepIcon}>
+              <Icon name={item.icon} size={18} color={COLORS.PRIMARY} />
+            </View>
+            <Text style={s.successStepLabel}>{item.label}</Text>
+            <Icon name="check-circle" size={16} color={COLORS.SUCCESS} />
+          </View>
+        ))}
+      </View>
+
+      <TouchableOpacity
+        style={s.successSignInBtn}
+        onPress={() => navigation.reset({ index: 0, routes: [{ name: "Login" }] })}
+        accessibilityRole="button"
+      >
+        <Text style={s.successSignInTxt}>Sign In Now</Text>
+        <Icon name="arrow-right" size={20} color="#fff" />
+      </TouchableOpacity>
+      <Text style={s.autoRedirect}>Redirecting automatically in a few seconds…</Text>
+    </Animated.View>
   );
-}
+};
 
+// ── Main Screen ───────────────────────────────────────────────────────────────
 export default function ForgotPasswordScreen({ navigation }) {
-  const [step, setStep] = useState(0);
-  const [email, setEmail] = useState("");
-  const [otp, setOtp] = useState("");
-  const [token, setToken] = useState(null);
+  const [step, setStep]         = useState(0);
+  const [email, setEmail]       = useState("");
+  const [otp, setOtp]           = useState(Array(OTP_LENGTH).fill(""));
+  const [resetToken, setToken]  = useState(null);
   const [password, setPassword] = useState("");
-  const [confirm, setConfirm] = useState("");
-  const [showPassword, setShowPassword] = useState(false);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
-  const [notice, setNotice] = useState("");
-  const [cooldown, setCooldown] = useState(0);
-  const [success, setSuccess] = useState(false);
-  const pending = useRef(false);
-  const mounted = useRef(true);
-  const resendAt = useRef(0);
-  useEffect(() => { mounted.current = true; return () => { mounted.current = false; }; }, []);
+  const [confirmPw, setConfirm] = useState("");
+  const [errors, setErrors]     = useState({});
+  const [busy, setBusy]         = useState(false);
+  const [notice, setNotice]     = useState("");
+  const [countdown, setCountdown] = useState(0);
+  const [success, setSuccess]   = useState(false);
+
+  const otpRefs   = useRef([]);
+  const confirmRef = useRef(null);
+
+  // Countdown timer for resend
   useEffect(() => {
-    if (!cooldown) return undefined;
-    const timer = setInterval(() => setCooldown(Math.max(0, Math.ceil((resendAt.current - Date.now()) / 1000))), 1000);
-    return () => clearInterval(timer);
-  }, [cooldown > 0]);
+    if (countdown <= 0) return;
+    const t = setTimeout(() => setCountdown(c => c - 1), 1000);
+    return () => clearTimeout(t);
+  }, [countdown]);
 
-  const strong = password.length >= 8 && password.length <= 72 && /[a-z]/.test(password) && /[A-Z]/.test(password) && /\d/.test(password);
-  const startOver = () => { setStep(0); setToken(null); setOtp(""); setPassword(""); setConfirm(""); setError(""); setNotice(""); };
-  const run = async action => {
-    if (pending.current) return;
-    pending.current = true; setBusy(true); setError(""); setNotice(""); Keyboard.dismiss();
-    try { await action(); }
-    catch (e) { if (mounted.current) setError(e.errors?.[0]?.message || e.message || "Something went wrong. Please try again."); }
-    finally { pending.current = false; if (mounted.current) setBusy(false); }
+  const clearErrors = (key) => setErrors(e => ({ ...e, [key]: null }));
+
+  // ── OTP digit handlers ──────────────────────────────────────────────────
+  const handleOtpDigit = (text, idx) => {
+    const d = text.replace(/\D/g, "").slice(-1);
+    const next = [...otp];
+    next[idx] = d;
+    setOtp(next);
+    clearErrors("otp");
+    if (d && idx < OTP_LENGTH - 1) otpRefs.current[idx + 1]?.focus();
   };
-  const sendCode = () => run(async () => {
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email.trim())) throw new Error("Enter a valid email address.");
-    await requestPasswordReset(email.trim().toLowerCase());
-    if (!mounted.current) return;
-    setStep(1); setOtp(""); resendAt.current = Date.now() + 60000; setCooldown(60);
-    setNotice("If this email matches an active account, we’ve sent a code to its registered WhatsApp number.");
-  });
-  const submit = () => {
-    if (step === 0) { sendCode(); return; }
-    run(async () => {
-      if (step === 1) {
-        if (!/^\d{6}$/.test(otp)) throw new Error("Enter the 6-digit code from WhatsApp.");
-        const data = await verifyPasswordReset(email.trim().toLowerCase(), otp);
-        if (mounted.current) { setToken(data.resetToken); setOtp(""); setStep(2); }
+  const handleOtpKey = (e, idx) => {
+    if (e.nativeEvent.key === "Backspace" && !otp[idx] && idx > 0) {
+      otpRefs.current[idx - 1]?.focus();
+    }
+  };
+
+  // ── Submit ──────────────────────────────────────────────────────────────
+  const handleSubmit = async () => {
+    setBusy(true);
+    setErrors({});
+    setNotice("");
+    try {
+      if (step === 0) {
+        if (!email.trim() || !/\S+@\S+\.\S+/.test(email))
+          return setErrors({ email: "Enter a valid email address." });
+        await requestPasswordReset(email.trim().toLowerCase());
+        setNotice("If this email has a registered account, a 6-digit code has been sent to its WhatsApp number.");
+        setStep(1);
+        setCountdown(RESEND_WAIT);
+
+      } else if (step === 1) {
+        const otpStr = otp.join("");
+        if (otpStr.length < OTP_LENGTH)
+          return setErrors({ otp: "Enter all 6 digits." });
+        const data = await verifyPasswordReset(email.trim().toLowerCase(), otpStr);
+        setToken(data.resetToken);
+        setStep(2);
+
       } else {
-        if (!strong) throw new Error("Use 8–72 characters with uppercase, lowercase and a number.");
-        if (password !== confirm) throw new Error("Your passwords don’t match.");
-        await completePasswordReset(token, password);
-        if (mounted.current) { setPassword(""); setConfirm(""); setToken(null); setSuccess(true); }
+        const pwOk = PW_RULES.every(r => r.test(password));
+        if (!pwOk) return setErrors({ password: "Password does not meet requirements." });
+        if (password !== confirmPw) return setErrors({ confirmPw: "Passwords do not match." });
+        await completePasswordReset(resetToken, password);
+        setSuccess(true);
       }
-    });
+    } catch (e) {
+      const msg = e.errors?.[0]?.message || e.message || "Something went wrong. Please try again.";
+      if (step === 0) setErrors({ email: msg });
+      else if (step === 1) setErrors({ otp: msg });
+      else setErrors({ password: msg });
+    } finally {
+      setBusy(false);
+    }
   };
 
+  const handleResend = async () => {
+    setBusy(true);
+    try {
+      await requestPasswordReset(email.trim().toLowerCase());
+      setOtp(Array(OTP_LENGTH).fill(""));
+      setCountdown(RESEND_WAIT);
+      setNotice("A new code has been sent to your WhatsApp.");
+      otpRefs.current[0]?.focus();
+    } catch (e) {
+      setErrors({ otp: e.message || "Resend failed. Please try again." });
+    } finally {
+      setBusy(false);
+    }
+  };
+
+  // ── Render ───────────────────────────────────────────────────────────────
   return (
     <SafeAreaView style={s.container}>
-      <KeyboardAvoidingView style={s.flex} behavior={Platform.OS === "ios" ? "padding" : undefined}>
-        <ScrollView contentContainerStyle={s.scroll} keyboardShouldPersistTaps="handled" showsVerticalScrollIndicator={false}>
-          <View style={s.topBar}>
-            <TouchableOpacity style={s.back} disabled={busy} accessibilityRole="button" accessibilityLabel="Back to sign in" onPress={() => navigation.navigate("Login")}><Icon name="arrow-left" size={23} color={GREEN} /></TouchableOpacity>
-            <Image source={require("../../assets/logo.png")} style={s.logo} resizeMode="contain" accessibilityLabel="BinGo logo" />
-            <View style={s.backSpacer} />
-          </View>
-          {success ? <ResetSuccess navigation={navigation} /> : <>
-            <View style={s.steps}>{LABELS.map((label, i) => <View style={s.step} key={label}><View style={[s.stepCircle, i <= step && s.stepCircleActive]}>{i < step ? <Icon name="check" size={15} color="white" /> : <Text style={[s.stepNumber, i <= step && s.white]}>{i + 1}</Text>}</View><Text style={[s.stepLabel, i === step && s.stepLabelActive]}>{label}</Text></View>)}</View>
-            <View style={s.heroIcon}><Icon name={ICONS[step]} size={33} color={GREEN} /></View>
-            <Text style={s.eyebrow}>ACCOUNT RECOVERY · 0{step + 1} / 03</Text>
-            <Text style={s.title} accessibilityRole="header">{TITLES[step]}</Text>
-            <Text style={s.description}>{step === 0 ? "Enter your account email. We’ll send a verification code to the WhatsApp number you registered with BinGo." : step === 1 ? `Enter the 6-digit code for ${email.trim()}. The code is valid for 10 minutes.` : "Choose a strong password you haven’t used before. Your other signed-in sessions will be signed out."}</Text>
-            <View style={s.form}>
-              {step === 0 && <Field label="Email address" icon="email-outline" value={email} onChangeText={setEmail} placeholder="you@example.com" keyboardType="email-address" autoCapitalize="none" autoCorrect={false} autoComplete="email" textContentType="emailAddress" editable={!busy} returnKeyType="done" onSubmitEditing={submit} />}
-              {step === 1 && <Field label="Verification code" icon="shield-key-outline" value={otp} onChangeText={text => setOtp(text.replace(/\D/g, "").slice(0, 6))} placeholder="000000" keyboardType="number-pad" maxLength={6} autoComplete="sms-otp" textContentType="oneTimeCode" editable={!busy} />}
-              {step === 2 && <>
-                <Field label="New password" icon="lock-outline" value={password} onChangeText={setPassword} placeholder="Enter a new password" secureTextEntry={!showPassword} autoCapitalize="none" autoCorrect={false} textContentType="newPassword" editable={!busy} maxLength={72}>
-                  <TouchableOpacity style={s.eye} onPress={() => setShowPassword(!showPassword)} accessibilityRole="button" accessibilityLabel={showPassword ? "Hide passwords" : "Show passwords"}><Icon name={showPassword ? "eye-off-outline" : "eye-outline"} size={21} color="#72877B" /></TouchableOpacity>
-                </Field>
-                <View style={s.rules}>{[[password.length >= 8, "At least 8 characters"], [/[A-Z]/.test(password) && /[a-z]/.test(password), "Uppercase & lowercase"], [/\d/.test(password), "At least one number"]].map(([met, label]) => <View key={label} style={s.rule}><Icon name={met ? "check-circle" : "circle-outline"} size={14} color={met ? GREEN : "#9AA79F"} /><Text style={[s.ruleText, met && { color: GREEN }]}>{label}</Text></View>)}</View>
-                <Field label="Confirm password" icon="lock-check-outline" value={confirm} onChangeText={setConfirm} placeholder="Re-enter your password" secureTextEntry={!showPassword} autoCapitalize="none" autoCorrect={false} textContentType="newPassword" editable={!busy} maxLength={72} onSubmitEditing={submit} />
-              </>}
-              {!!notice && <View style={s.notice}><Icon name="whatsapp" size={20} color={GREEN} /><Text style={s.noticeText} accessibilityLiveRegion="polite">{notice}</Text></View>}
-              {!!error && <View style={s.errorBox}><Icon name="alert-circle-outline" size={20} color="#B43C35" /><Text style={s.errorText} accessibilityRole="alert">{error}</Text></View>}
-              <TouchableOpacity style={[s.primary, busy && s.disabled]} disabled={busy} accessibilityRole="button" accessibilityState={{ disabled: busy, busy }} onPress={submit}>{busy ? <ActivityIndicator color="white" /> : <><Text style={s.primaryText}>{["Send WhatsApp code", "Verify code", "Reset password"][step]}</Text><Icon name="arrow-right" size={21} color="white" /></>}</TouchableOpacity>
-              {step === 1 && <TouchableOpacity disabled={busy || cooldown > 0} style={s.textButton} accessibilityRole="button" onPress={sendCode}><Text style={[s.link, (busy || cooldown > 0) && s.muted]}>{cooldown > 0 ? `Resend code in ${cooldown}s` : "Didn’t get a code? Resend"}</Text></TouchableOpacity>}
-              {step > 0 && <TouchableOpacity disabled={busy} onPress={startOver} style={s.textButton} accessibilityRole="button"><Text style={s.link}>{step === 1 ? "Use a different email" : "Start again with a new code"}</Text></TouchableOpacity>}
-            </View>
-            <View style={s.securityNote}><Icon name="shield-check-outline" size={18} color="#72877B" /><Text style={s.securityText}>{step === 0 ? "No access to your registered WhatsApp? Contact your BinGo administrator for help." : "Keep your verification code private. BinGo will never ask you to share it."}</Text></View>
-          </>}
+      {/* Sticky top bar */}
+      <View style={s.topBar}>
+        <TouchableOpacity
+          onPress={() => step > 0 ? setStep(p => p - 1) : navigation.goBack()}
+          style={s.backBtn}
+          disabled={busy}
+          accessibilityRole="button"
+          accessibilityLabel="Go back"
+        >
+          <Icon name="arrow-left" size={22} color={COLORS.PRIMARY} />
+        </TouchableOpacity>
+        <Image
+          source={require("../../assets/logo.png")}
+          style={s.logo}
+          resizeMode="contain"
+          accessibilityLabel="BinGo logo"
+        />
+        <View style={{ width: 38 }} />
+      </View>
+
+      <KeyboardAvoidingView
+        behavior={Platform.OS === "ios" ? "padding" : "height"}
+        style={{ flex: 1 }}
+      >
+        <ScrollView
+          contentContainerStyle={s.scroll}
+          keyboardShouldPersistTaps="handled"
+          keyboardDismissMode="on-drag"
+          showsVerticalScrollIndicator={false}
+        >
+          {success ? (
+            <SuccessView navigation={navigation} />
+          ) : (
+            <>
+              {/* Step indicator */}
+              <StepIndicator current={step} />
+
+              {/* Hero */}
+              <View style={s.hero}>
+                <View style={s.heroIcon}>
+                  <Icon
+                    name={step === 0 ? "email-outline" : step === 1 ? "whatsapp" : "lock-reset"}
+                    size={30}
+                    color={COLORS.PRIMARY}
+                  />
+                </View>
+                <Text style={s.heroTitle}>
+                  {step === 0 ? "Reset Password"
+                    : step === 1 ? "Check WhatsApp"
+                    : "New Password"}
+                </Text>
+                <Text style={s.heroSub}>
+                  {step === 0
+                    ? "Enter your account email and we'll send a verification code to your WhatsApp."
+                    : step === 1
+                    ? `Enter the 6-digit code sent to the WhatsApp number linked to ${email.trim()}.`
+                    : "Choose a strong password you haven't used before."}
+                </Text>
+              </View>
+
+              {/* Form */}
+              <View style={s.form}>
+
+                {/* Step 0 — Email */}
+                {step === 0 && (
+                  <View style={s.inputGroup}>
+                    <Text style={s.label}>Email Address</Text>
+                    <View style={[s.inputRow, errors.email && s.inputError]}>
+                      <Icon name="email-outline" size={20} color={COLORS.TEXT_SECONDARY} />
+                      <TextInput
+                        style={s.inputFlex}
+                        value={email}
+                        onChangeText={t => { setEmail(t); clearErrors("email"); }}
+                        placeholder="you@example.com"
+                        placeholderTextColor={COLORS.TEXT_DISABLED}
+                        keyboardType="email-address"
+                        autoCapitalize="none"
+                        autoComplete="email"
+                        returnKeyType="done"
+                        blurOnSubmit
+                        onSubmitEditing={handleSubmit}
+                        editable={!busy}
+                      />
+                    </View>
+                    {errors.email && <Text style={s.errorText}>{errors.email}</Text>}
+                  </View>
+                )}
+
+                {/* Step 1 — OTP */}
+                {step === 1 && (
+                  <View style={s.inputGroup}>
+                    {/* WA banner */}
+                    <View style={s.waBanner}>
+                      <Icon name="whatsapp" size={20} color="#25D366" />
+                      <Text style={s.waBannerTxt}>
+                        Code sent to the WhatsApp linked to your account
+                      </Text>
+                    </View>
+                    <Text style={s.label}>Verification Code</Text>
+                    <View style={s.otpRow}>
+                      {otp.map((d, i) => (
+                        <TextInput
+                          key={i}
+                          ref={r => (otpRefs.current[i] = r)}
+                          style={[
+                            s.otpBox,
+                            d && s.otpFilled,
+                            errors.otp && s.otpError,
+                          ]}
+                          value={d}
+                          onChangeText={t => handleOtpDigit(t, i)}
+                          onKeyPress={e => handleOtpKey(e, i)}
+                          keyboardType="number-pad"
+                          maxLength={1}
+                          textAlign="center"
+                          selectTextOnFocus
+                          editable={!busy}
+                          accessibilityLabel={`OTP digit ${i + 1}`}
+                        />
+                      ))}
+                    </View>
+                    {errors.otp && <Text style={s.errorText}>{errors.otp}</Text>}
+                  </View>
+                )}
+
+                {/* Step 2 — New password */}
+                {step === 2 && (
+                  <>
+                    <PasswordField
+                      label="New Password"
+                      value={password}
+                      onChangeText={t => { setPassword(t); clearErrors("password"); }}
+                      error={errors.password}
+                      placeholder="Enter new password"
+                      autoCapitalize="none"
+                      returnKeyType="next"
+                      blurOnSubmit={false}
+                      onSubmitEditing={() => confirmRef.current?.focus()}
+                      editable={!busy}
+                    />
+                    <PasswordStrength value={password} />
+                    <PasswordField
+                      label="Confirm New Password"
+                      inputRef={confirmRef}
+                      value={confirmPw}
+                      onChangeText={t => { setConfirm(t); clearErrors("confirmPw"); }}
+                      error={errors.confirmPw}
+                      placeholder="Re-enter new password"
+                      autoCapitalize="none"
+                      returnKeyType="done"
+                      blurOnSubmit
+                      onSubmitEditing={handleSubmit}
+                      editable={!busy}
+                    />
+                  </>
+                )}
+
+                {/* Notice (step 0 success message) */}
+                {notice ? (
+                  <View style={s.noticeBanner}>
+                    <Icon name="information-outline" size={18} color={COLORS.PRIMARY} />
+                    <Text style={s.noticeTxt}>{notice}</Text>
+                  </View>
+                ) : null}
+
+                {/* Submit button */}
+                <TouchableOpacity
+                  style={[s.btn, busy && s.btnDisabled]}
+                  onPress={handleSubmit}
+                  disabled={busy}
+                  accessibilityRole="button"
+                >
+                  {busy ? (
+                    <ActivityIndicator color="#fff" />
+                  ) : (
+                    <View style={s.btnInner}>
+                      <Text style={s.btnTxt}>
+                        {step === 0 ? "Send WhatsApp Code"
+                          : step === 1 ? "Verify Code"
+                          : "Reset Password"}
+                      </Text>
+                      <Icon name="arrow-right" size={20} color="#fff" />
+                    </View>
+                  )}
+                </TouchableOpacity>
+
+                {/* Resend (step 1) */}
+                {step === 1 && (
+                  <View style={s.resendRow}>
+                    {countdown > 0 ? (
+                      <Text style={s.countdownTxt}>
+                        Resend in <Text style={s.countdownNum}>{countdown}s</Text>
+                      </Text>
+                    ) : (
+                      <TouchableOpacity
+                        onPress={handleResend}
+                        disabled={busy}
+                        accessibilityRole="button"
+                      >
+                        <Text style={s.linkTxt}>Didn't receive a code? Resend</Text>
+                      </TouchableOpacity>
+                    )}
+                  </View>
+                )}
+
+                {/* Use different email (step 1) */}
+                {step === 1 && (
+                  <TouchableOpacity
+                    onPress={() => { setStep(0); setOtp(Array(OTP_LENGTH).fill("")); setErrors({}); setNotice(""); }}
+                    disabled={busy}
+                    style={s.resendRow}
+                    accessibilityRole="button"
+                  >
+                    <Text style={s.linkTxtMuted}>Use a different email</Text>
+                  </TouchableOpacity>
+                )}
+              </View>
+
+              {/* Security note */}
+              <View style={s.securityNote}>
+                <Icon name="shield-check-outline" size={16} color={COLORS.TEXT_DISABLED} />
+                <Text style={s.securityTxt}>
+                  {step === 0
+                    ? "No access to your WhatsApp? Contact your BinGo administrator."
+                    : "Never share your verification code with anyone."}
+                </Text>
+              </View>
+            </>
+          )}
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
+// ── Styles ────────────────────────────────────────────────────────────────────
 const s = StyleSheet.create({
-  flex: { flex: 1 }, container: { flex: 1, backgroundColor: "#FAFBF7" }, scroll: { flexGrow: 1, paddingHorizontal: 24, paddingBottom: 28 },
-  topBar: { flexDirection: "row", justifyContent: "space-between", alignItems: "center", paddingVertical: 12, marginBottom: 26 }, logo: { width: 112, height: 44 }, back: { width: 44, height: 44, borderRadius: 15, backgroundColor: "#EDF2EA", alignItems: "center", justifyContent: "center" }, backSpacer: { width: 44 },
-  steps: { flexDirection: "row", paddingBottom: 28 }, step: { flex: 1, alignItems: "center", gap: 7 }, stepCircle: { width: 27, height: 27, borderRadius: 14, backgroundColor: "#E7ECE5", alignItems: "center", justifyContent: "center" }, stepCircleActive: { backgroundColor: GREEN }, stepNumber: { color: "#849186", fontSize: 12, fontWeight: "700" }, white: { color: "white" }, stepLabel: { color: "#87938A", fontSize: 10 }, stepLabelActive: { color: GREEN, fontWeight: "700" },
-  heroIcon: { width: 68, height: 68, borderRadius: 23, backgroundColor: "#E8F0E5", alignItems: "center", justifyContent: "center", marginBottom: 24 }, eyebrow: { fontSize: 10, letterSpacing: 1.6, color: GREEN, fontWeight: "800", marginBottom: 12 }, title: { color: "#173F2E", fontWeight: "800", fontSize: 34, lineHeight: 41, letterSpacing: -1, marginBottom: 14 }, description: { color: "#6B7B71", fontSize: 14, lineHeight: 23 },
-  form: { marginTop: 27 }, fieldGroup: { marginBottom: 18 }, fieldLabel: { fontSize: 12, fontWeight: "700", color: "#304D3D", marginBottom: 8 }, inputWrap: { borderWidth: 1, borderColor: "#DCE5DA", backgroundColor: "white", borderRadius: 14, paddingLeft: 15, flexDirection: "row", alignItems: "center", gap: 10 }, input: { flex: 1, color: "#243D30", minHeight: 56, fontSize: 15, paddingVertical: 13, paddingRight: 12 }, eye: { minWidth: 44, minHeight: 48, alignItems: "center", justifyContent: "center" },
-  primary: { minHeight: 56, padding: 17, backgroundColor: GREEN, borderRadius: 15, flexDirection: "row", alignItems: "center", justifyContent: "space-between", gap: 12 }, primaryText: { color: "white", fontSize: 15, fontWeight: "700" }, disabled: { opacity: 0.6 }, textButton: { minHeight: 44, alignItems: "center", justifyContent: "center", marginTop: 4 }, link: { color: GREEN, fontWeight: "600", fontSize: 12 }, muted: { color: "#87938A" },
-  notice: { flexDirection: "row", alignItems: "flex-start", gap: 9, padding: 13, borderRadius: 12, backgroundColor: "#EAF2E8", marginBottom: 18 }, noticeText: { flex: 1, color: GREEN, fontSize: 12, lineHeight: 19 }, errorBox: { flexDirection: "row", gap: 9, backgroundColor: "#FBECE9", padding: 13, borderRadius: 12, marginBottom: 18 }, errorText: { flex: 1, color: "#B43C35", fontSize: 12, lineHeight: 19 },
-  rules: { gap: 7, marginTop: -6, marginBottom: 20 }, rule: { flexDirection: "row", gap: 6, alignItems: "center" }, ruleText: { fontSize: 11, color: "#87938A" }, securityNote: { flexDirection: "row", gap: 9, marginTop: 24, paddingHorizontal: 5 }, securityText: { flex: 1, fontSize: 11, lineHeight: 18, color: "#7D8C81" },
-  success: { flex: 1, justifyContent: "center", paddingBottom: 25 }, successCircle: { alignSelf: "center", backgroundColor: "#E5F0E1", width: 116, height: 116, borderRadius: 58, justifyContent: "center", alignItems: "center", marginBottom: 30 }, centerText: { textAlign: "center" }, successSteps: { backgroundColor: "white", borderWidth: 1, borderColor: "#E1E8DC", borderRadius: 20, padding: 22, gap: 22, marginVertical: 28 }, successRow: { flexDirection: "row", gap: 12, alignItems: "center" }, successLabel: { color: "#304D3D", fontSize: 13, fontWeight: "600" }, helper: { color: "#87938A", fontSize: 11, textAlign: "center", marginTop: 18 },
+  container: { flex: 1, backgroundColor: COLORS.BACKGROUND },
+
+  topBar: {
+    flexDirection: "row", alignItems: "center",
+    justifyContent: "space-between",
+    paddingHorizontal: 20, paddingVertical: 12,
+    backgroundColor: COLORS.BACKGROUND,
+    borderBottomWidth: 1, borderBottomColor: COLORS.DIVIDER,
+  },
+  backBtn: {
+    width: 38, height: 38, borderRadius: 19,
+    backgroundColor: COLORS.SURFACE,
+    justifyContent: "center", alignItems: "center",
+    borderWidth: 1, borderColor: COLORS.BORDER,
+  },
+  logo: { width: 110, height: 42 },
+
+  scroll: { flexGrow: 1, padding: 20, paddingBottom: 40 },
+
+  // Step indicator
+  stepRow: {
+    flexDirection: "row", alignItems: "center",
+    marginBottom: 24, marginTop: 4,
+  },
+  stepItem: { alignItems: "center", gap: 4 },
+  stepLine: {
+    flex: 1, height: 2, backgroundColor: COLORS.BORDER, marginHorizontal: 4,
+  },
+  stepLineDone: { backgroundColor: COLORS.PRIMARY },
+  stepCircle: {
+    width: 28, height: 28, borderRadius: 14,
+    backgroundColor: COLORS.BORDER,
+    justifyContent: "center", alignItems: "center",
+  },
+  stepCircleActive: { backgroundColor: COLORS.PRIMARY },
+  stepNum:  { fontSize: 12, fontWeight: "700", color: COLORS.TEXT_SECONDARY },
+  stepNumActive: { color: "#fff" },
+  stepLabel: { fontSize: 10, color: COLORS.TEXT_DISABLED, fontWeight: "500" },
+  stepLabelActive: { color: COLORS.PRIMARY, fontWeight: "700" },
+
+  // Hero
+  hero: { alignItems: "center", marginBottom: 28, gap: 10 },
+  heroIcon: {
+    width: 64, height: 64, borderRadius: 20,
+    backgroundColor: "#E8F5E9",
+    justifyContent: "center", alignItems: "center",
+  },
+  heroTitle: { fontSize: 24, fontWeight: "800", color: COLORS.TEXT_PRIMARY },
+  heroSub: {
+    fontSize: 13, color: COLORS.TEXT_SECONDARY,
+    textAlign: "center", lineHeight: 19,
+  },
+
+  // Form
+  form: { gap: 16 },
+  inputGroup: { gap: 6 },
+  label: { fontSize: 14, fontWeight: "600", color: COLORS.TEXT_PRIMARY },
+  inputRow: {
+    flexDirection: "row", alignItems: "center", gap: 10,
+    backgroundColor: COLORS.SURFACE, borderWidth: 1,
+    borderColor: COLORS.BORDER, borderRadius: 10,
+    paddingHorizontal: 14,
+  },
+  inputFlex: {
+    flex: 1, paddingVertical: 13,
+    fontSize: 15, color: COLORS.TEXT_PRIMARY,
+  },
+  inputError: { borderColor: COLORS.ERROR },
+  errorText: { fontSize: 12, color: COLORS.ERROR },
+
+  pwRow: {
+    flexDirection: "row", alignItems: "center",
+    backgroundColor: COLORS.SURFACE, borderWidth: 1,
+    borderColor: COLORS.BORDER, borderRadius: 10,
+  },
+  pwInput: {
+    flex: 1, paddingHorizontal: 14, paddingVertical: 13,
+    fontSize: 15, color: COLORS.TEXT_PRIMARY,
+  },
+  eyeBtn: {
+    paddingHorizontal: 12, paddingVertical: 12,
+    justifyContent: "center", alignItems: "center",
+  },
+
+  // WA banner
+  waBanner: {
+    flexDirection: "row", alignItems: "center", gap: 8,
+    backgroundColor: "#E8F5E9", borderRadius: 10,
+    padding: 12, marginBottom: 8,
+    borderWidth: 1, borderColor: "#C8E6C9",
+  },
+  waBannerTxt: { flex: 1, fontSize: 13, color: "#2E7D32", lineHeight: 18 },
+
+  // OTP
+  otpRow: {
+    flexDirection: "row", gap: 8,
+    justifyContent: "space-between",
+  },
+  otpBox: {
+    width: 44, height: 54, borderRadius: 10,
+    borderWidth: 1.5, borderColor: COLORS.BORDER,
+    backgroundColor: COLORS.BACKGROUND,
+    fontSize: 22, fontWeight: "bold", color: COLORS.TEXT_PRIMARY,
+  },
+  otpFilled: { borderColor: COLORS.PRIMARY, backgroundColor: "#E8F5E9" },
+  otpError:  { borderColor: COLORS.ERROR },
+
+  // Notice
+  noticeBanner: {
+    flexDirection: "row", gap: 10, alignItems: "flex-start",
+    backgroundColor: "#E8F5E9", borderRadius: 10,
+    padding: 12, borderWidth: 1, borderColor: "#C8E6C9",
+  },
+  noticeTxt: { flex: 1, fontSize: 13, color: COLORS.PRIMARY_DARK, lineHeight: 18 },
+
+  // Button
+  btn: {
+    backgroundColor: COLORS.PRIMARY,
+    paddingVertical: 15, borderRadius: 12, alignItems: "center",
+    marginTop: 4,
+  },
+  btnDisabled: { opacity: 0.6 },
+  btnInner: { flexDirection: "row", alignItems: "center", gap: 8 },
+  btnTxt: { color: "#fff", fontSize: 16, fontWeight: "bold" },
+
+  // Resend row
+  resendRow: { alignItems: "center", paddingVertical: 2 },
+  countdownTxt: { fontSize: 13, color: COLORS.TEXT_SECONDARY },
+  countdownNum: { color: COLORS.PRIMARY, fontWeight: "700" },
+  linkTxt: { fontSize: 13, color: COLORS.PRIMARY, fontWeight: "600" },
+  linkTxtMuted: { fontSize: 13, color: COLORS.TEXT_SECONDARY },
+
+  // Security note
+  securityNote: {
+    flexDirection: "row", gap: 8, alignItems: "flex-start",
+    marginTop: 20, paddingHorizontal: 4,
+  },
+  securityTxt: { flex: 1, fontSize: 11, color: COLORS.TEXT_DISABLED, lineHeight: 17 },
+
+  // ── Success view ──────────────────────────────────────────────────────────
+  successContainer: {
+    flex: 1, alignItems: "center",
+    paddingTop: 16, gap: 20,
+  },
+  successCircle: {
+    width: 100, height: 100, borderRadius: 50,
+    backgroundColor: "#E8F5E9",
+    justifyContent: "center", alignItems: "center",
+    borderWidth: 2, borderColor: "#C8E6C9",
+  },
+  successTitle: {
+    fontSize: 28, fontWeight: "800",
+    color: COLORS.TEXT_PRIMARY, textAlign: "center",
+  },
+  successSub: {
+    fontSize: 14, color: COLORS.TEXT_SECONDARY,
+    textAlign: "center", lineHeight: 20,
+  },
+  successSteps: {
+    width: "100%", backgroundColor: COLORS.SURFACE,
+    borderRadius: 14, padding: 16, gap: 12,
+    borderWidth: 1, borderColor: COLORS.BORDER,
+  },
+  successStep: {
+    flexDirection: "row", alignItems: "center", gap: 10,
+  },
+  successStepIcon: {
+    width: 36, height: 36, borderRadius: 10,
+    backgroundColor: "#E8F5E9",
+    justifyContent: "center", alignItems: "center",
+  },
+  successStepLabel: {
+    flex: 1, fontSize: 14, fontWeight: "600", color: COLORS.TEXT_PRIMARY,
+  },
+  autoRedirect: {
+    fontSize: 12, color: COLORS.TEXT_DISABLED, textAlign: "center",
+  },
+  successSignInBtn: {
+    width: "100%",
+    backgroundColor: COLORS.PRIMARY,
+    paddingVertical: 15,
+    borderRadius: 12,
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "center",
+    gap: 8,
+    shadowColor: "#000",
+    shadowOffset: { width: 0, height: 2 },
+    shadowOpacity: 0.15,
+    shadowRadius: 6,
+    elevation: 3,
+  },
+  successSignInTxt: {
+    color: "#fff", fontSize: 16, fontWeight: "bold",
+  },
 });
