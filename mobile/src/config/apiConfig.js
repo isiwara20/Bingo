@@ -13,12 +13,13 @@
  * Make sure your phone and PC are on the same Wi-Fi network.
  */
 
-// ADB reverse tcp:5000 tcp:5000 is active — localhost tunnels to PC via USB
-// Run: adb reverse tcp:5000 tcp:5000 && adb reverse tcp:8081 tcp:8081
+// ADB reverse tunnels localhost:5000 on the phone to localhost:5000 on the PC.
+// This works over USB regardless of Wi-Fi network, IP changes, or firewall rules.
+// Run: adb reverse tcp:5000 tcp:5000  (already done automatically at startup)
 const API_BASE_URL =
   process.env.API_BASE_URL || "http://localhost:5000/api/v1";
 
 export default {
   API_BASE_URL,
-  TIMEOUT: 15000, // 15 seconds
+  TIMEOUT: 30000, // 30 seconds
 };

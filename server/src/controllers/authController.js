@@ -19,17 +19,16 @@ const { HTTP_STATUS } = require("../config/constants");
  * POST /api/v1/auth/register
  */
 const register = asyncHandler(async (req, res) => {
-  const { name, email, password, phone, role, address, communityName, location } = req.body;
+  const {
+    name, email, password, phone,
+    whatsappNumber, role, address,
+    communityName, authorityName, location,
+  } = req.body;
 
   const result = await authService.registerUser({
-    name,
-    email,
-    password,
-    phone,
-    role,
-    address,
-    communityName,
-    location,
+    name, email, password, phone,
+    whatsappNumber, role, address,
+    communityName, authorityName, location,
   });
 
   sendSuccess(res, HTTP_STATUS.CREATED, "Registration successful.", result);
@@ -61,43 +60,42 @@ const getMe = asyncHandler(async (req, res) => {
 
 /**
  * POST /api/v1/auth/send-otp
- * Body: { phone }
- * Generates a 6-digit OTP and sends it via text.lk SMS.
+ * Body: { whatsappNumber }
+ * Generates a 6-digit OTP and sends it via WhatsApp (WAClient).
  */
 const sendOtp = asyncHandler(async (req, res) => {
-  const { phone } = req.body;
+  const { whatsappNumber } = req.body;
 
-  if (!phone || !phone.trim()) {
+  if (!whatsappNumber || !whatsappNumber.trim()) {
     return res.status(HTTP_STATUS.BAD_REQUEST).json({
       success: false,
-      message: "Phone number is required.",
+      message: "WhatsApp number is required.",
     });
   }
 
-  await otpService.sendOtp(phone.trim());
-
-  sendSuccess(res, HTTP_STATUS.OK, "OTP sent successfully. Please check your phone.");
+  await otpService.sendOtp(whatsappNumber.trim());
+  sendSuccess(res, HTTP_STATUS.OK, "OTP sent to your WhatsApp. Please check your messages.");
 });
 
 /**
  * POST /api/v1/auth/verify-otp
- * Body: { phone, otp }
- * Verifies the OTP and marks the phone number as verified.
+ * Body: { whatsappNumber, otp }
+ * Verifies the OTP and marks the WhatsApp number as verified.
  */
 const verifyOtp = asyncHandler(async (req, res) => {
-  const { phone, otp } = req.body;
+  const { whatsappNumber, otp } = req.body;
 
-  if (!phone || !otp) {
+  if (!whatsappNumber || !otp) {
     return res.status(HTTP_STATUS.BAD_REQUEST).json({
       success: false,
-      message: "Phone number and OTP are required.",
+      message: "WhatsApp number and OTP are required.",
     });
   }
 
-  const user = await otpService.verifyOtp(phone.trim(), otp.trim());
+  const user = await otpService.verifyOtp(whatsappNumber.trim(), otp.trim());
 
-  sendSuccess(res, HTTP_STATUS.OK, "Phone number verified successfully.", {
-    phoneVerified: user.phoneVerified,
+  sendSuccess(res, HTTP_STATUS.OK, "WhatsApp number verified successfully.", {
+    whatsappVerified: user.whatsappVerified,
   });
 });
 

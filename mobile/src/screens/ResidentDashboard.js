@@ -16,6 +16,7 @@ import { logout as logoutApi } from "../services/authService";
 import { getRewards } from "../services/rewardService";
 import DashboardHeader from "../components/DashboardHeader";
 import COLORS from "../constants/colors";
+import GoalSummaryCard from "../components/goals/GoalSummaryCard";
 
 // ── constants ─────────────────────────────────────────────────────────────────
 const QUICK_ACTIONS = [
@@ -124,6 +125,8 @@ const ResidentDashboard = ({ navigation }) => {
           <StatChip emoji="✅" label="Resolved" value={resolved}       color={COLORS.SUCCESS} />
           <StatChip emoji="⭐" label="Points"   value={points ?? user?.rewardPoints ?? 0} color={COLORS.SECONDARY} />
         </View>
+
+        <GoalSummaryCard navigation={navigation} />
 
         {/* Quick actions */}
         <SectionTitle>Quick Actions</SectionTitle>

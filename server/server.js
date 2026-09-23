@@ -23,7 +23,7 @@ connectDatabase()
       console.log(`  Environment : ${NODE_ENV}`);
       console.log(`  Port        : ${PORT}`);
       console.log(`  Local       : http://localhost:${PORT}/api/v1/health`);
-      console.log(`  Network     : http://192.168.1.8:${PORT}/api/v1/health`);
+      console.log(`  Network     : http://192.168.1.4:${PORT}/api/v1/health`);
       console.log("===========================================");
     });
   })

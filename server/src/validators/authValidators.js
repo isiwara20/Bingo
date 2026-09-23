@@ -37,6 +37,12 @@ const registerValidation = [
     .matches(/^[\d\s\+\-\(\)]{7,20}$/)
     .withMessage("Please provide a valid phone number"),
 
+  body("whatsappNumber")
+    .optional({ nullable: true })
+    .trim()
+    .matches(/^[\d\s\+\-\(\)]{7,20}$/)
+    .withMessage("Please provide a valid WhatsApp number"),
+
   body("role")
     .optional()
     .isIn(ALLOWED_REGISTRATION_ROLES)

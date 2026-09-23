@@ -16,6 +16,7 @@ import { logout as logoutApi } from "../services/authService";
 import { getRewards } from "../services/rewardService";
 import DashboardHeader from "../components/DashboardHeader";
 import COLORS from "../constants/colors";
+import GoalSummaryCard from "../components/goals/GoalSummaryCard";
 
 const SectionTitle = ({ children }) => <Text style={styles.sectionTitle}>{children}</Text>;
 
@@ -114,6 +115,8 @@ const WasteAuthorityDashboard = ({ navigation }) => {
           <RefreshControl refreshing={refresh} onRefresh={() => { setRefresh(true); load(); }} tintColor="#00695C" />
         }
       >
+        <GoalSummaryCard navigation={navigation} />
+
         {/* Priority stats */}
         <SectionTitle>Today's Overview</SectionTitle>
         <View style={styles.priorityRow}>

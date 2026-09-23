@@ -56,25 +56,31 @@ export const getMe = async () => {
 };
 
 /**
- * Send a 6-digit OTP to the given phone number via text.lk SMS.
- * The user must already exist in the database with this phone number.
- *
- * @param {string} phone - Phone number to send OTP to
- * @returns {Promise<void>}
+ * Send a 6-digit OTP to the given WhatsApp number via WAClient.
+ * @param {string} whatsappNumber
  */
-export const sendOtp = async (phone) => {
-  await api.post("/auth/send-otp", { phone });
+export const sendOtp = async (whatsappNumber) => {
+  await api.post("/auth/send-otp", { whatsappNumber });
 };
 
 /**
  * Verify the OTP entered by the user.
- * On success, the backend marks the phone as verified.
- *
- * @param {string} phone - Phone number
- * @param {string} otp   - 6-digit OTP entered by user
- * @returns {{ phoneVerified: boolean }}
+ * @param {string} whatsappNumber
+ * @param {string} otp
  */
-export const verifyOtp = async (phone, otp) => {
-  const response = await api.post("/auth/verify-otp", { phone, otp });
+export const verifyOtp = async (whatsappNumber, otp) => {
+  const response = await api.post("/auth/verify-otp", { whatsappNumber, otp });
   return response.data.data;
+};
+
+export const requestPasswordReset = async (email) => {
+  const response = await api.post("/auth/password-reset/request", { email });
+  return response.data;
+};
+export const verifyPasswordReset = async (email, otp) => {
+  const response = await api.post("/auth/password-reset/verify", { email, otp });
+  return response.data.data;
+};
+export const completePasswordReset = async (resetToken, password) => {
+  await api.post("/auth/password-reset/complete", { resetToken, password });
 };

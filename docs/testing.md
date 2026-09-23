@@ -91,3 +91,37 @@ Login as different roles and verify RBAC.
 - [ ] Test GPS location service with mocked Geolocation
 - [ ] Test image picker service
 - [ ] CI/CD GitHub Actions workflow to run tests on each PR
+
+## WhatsApp password recovery
+
+The sign-in page’s **Forgot password** action now uses three steps:
+
+1. Enter the registered email address.
+2. Enter the six-digit code sent to that account’s saved WhatsApp number.
+3. Set and confirm a new password. A success animation returns to sign-in.
+
+The API endpoints are `POST /api/v1/auth/password-reset/request` (`email`),
+`POST /api/v1/auth/password-reset/verify` (`email`, `otp`), and
+`POST /api/v1/auth/password-reset/complete` (`resetToken`, `password`).
+Verification returns a short-lived reset token, not an authentication token.
+
+Set `WACLIENT_INSTANCE_ID`, `WACLIENT_ACCESS_TOKEN`, and `JWT_SECRET` on the
+server, then restart it. Recovery requires a successful WhatsApp provider response;
+it does not use the registration flow’s development console fallback. Users without
+a registered WhatsApp number must contact their administrator.
+
+Codes expire after 10 minutes, allow five verification attempts, and can be resent
+after 60 seconds. Resending invalidates the previous recovery session. Reset tokens
+expire after 10 minutes and can only be used once. Resetting also invalidates existing
+sign-in tokens. Unknown email addresses receive the same request response as known
+accounts. Codes are stored as keyed hashes and reset tokens as SHA-256 hashes.
+
+Automated recovery tests mock persistence and WhatsApp delivery, so they do not send
+messages or change real accounts. Run `npm test --prefix server -- --runInBand`.
+For device verification, use a dedicated account with a registered WhatsApp number;
+check successful recovery, wrong/expired codes, resend cooldown, password mismatch,
+and return to sign-in. Confirm the old password fails and the new password succeeds.
+
+Mobile interaction tests cover all three onboarding pages, account creation/sign-in
+navigation, recovery validation and errors, resend timing, and animated success
+with reduced-motion support. Run `npm test --prefix mobile -- --runInBand`.

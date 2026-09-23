@@ -31,11 +31,10 @@
       android:theme="@style/AppTheme"
       android:usesCleartextTraffic="true">
 
-      <!-- Google Maps API key (react-native-maps) -->
-      <!-- TODO: Replace YOUR_GOOGLE_MAPS_API_KEY with a real key from Google Cloud Console -->
+      <!-- Google Maps API key (react-native-maps + geolocation) -->
       <meta-data
           android:name="com.google.android.geo.API_KEY"
-          android:value="YOUR_GOOGLE_MAPS_API_KEY" />
+          android:value="AIzaSyD-placeholder-replace-with-real-key" />
 
       <activity
         android:name=".MainActivity"

@@ -42,7 +42,38 @@ const userSchema = new mongoose.Schema(
       select: false, // Never returned in queries unless explicitly requested
     },
 
+    sessionVersion: { type: Number, default: 0 },
+    passwordReset: {
+      type: new mongoose.Schema({
+        otpHash: String,
+        expiresAt: Date,
+        sentAt: Date,
+        attempts: { type: Number, default: 0 },
+        tokenHash: String,
+        tokenExpiresAt: Date,
+      }, { _id: false }),
+      select: false,
+      default: undefined,
+    },
+
     phone: {
+      type: String,
+      trim: true,
+      default: null,
+    },
+
+    whatsappNumber: {
+      type: String,
+      trim: true,
+      default: null,
+    },
+
+    whatsappVerified: {
+      type: Boolean,
+      default: false,
+    },
+
+    authorityName: {
       type: String,
       trim: true,
       default: null,
@@ -113,6 +144,68 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+
+    // ── Plan (residents only) ─────────────────────────────────────────────
+    plan: {
+      type: String,
+      enum: ["free", "plus", "pro"],
+      default: null,
+    },
+
+    hasSelectedPlan: {
+      type: Boolean,
+      default: false,
+    },
+
+    planActivatedAt: {
+      type: Date,
+      default: null,
+    },
+
+    // ── Profile verification (residents only) ─────────────────────────────
+    profileVerified: {
+      type: Boolean,
+      default: false,
+    },
+
+    verificationStatus: {
+      type: String,
+      enum: ["unverified", "pending", "verified", "rejected"],
+      default: "unverified",
+    },
+
+    residenceImage: {
+      type: String, // base64 or URL
+      default: null,
+    },
+
+    faceImage: {
+      type: String, // base64 or URL
+      default: null,
+    },
+
+    verifiedAt: {
+      type: Date,
+      default: null,
+    },
+
+    verificationRejectedReason: {
+      type: String,
+      default: null,
+    },
+
+    verificationLocation: {
+      type: {
+        type: String,
+        enum: ["Point"],
+        default: undefined,
+      },
+      coordinates: {
+        type: [Number], // [longitude, latitude]
+        default: undefined,
+      },
+      address: { type: String, default: null },
+    },
   },
   {
     timestamps: true, // adds createdAt and updatedAt automatically
@@ -120,6 +213,9 @@ const userSchema = new mongoose.Schema(
       // Remove sensitive fields when converting to JSON
       transform: (doc, ret) => {
         delete ret.passwordHash;
+        delete ret.passwordReset;
+        delete ret.otpCode;
+        delete ret.otpExpiry;
         delete ret.__v;
         return ret;
       },

@@ -31,7 +31,8 @@ const OTP_LENGTH = 6;
 const RESEND_COUNTDOWN = 60; // seconds
 
 const OtpVerificationScreen = ({ route, navigation }) => {
-  const { phone } = route.params || {};
+  const { whatsappNumber, phone } = route.params || {};
+  const contactNumber = whatsappNumber || phone;
   const { updateUser } = useAuth();
 
   // 6 individual digit inputs
@@ -88,7 +89,7 @@ const OtpVerificationScreen = ({ route, navigation }) => {
     setLoading(true);
     setError(null);
     try {
-      await verifyOtp(phone, otp);
+      await verifyOtp(contactNumber, otp);
       // Phone is now verified — update user in context if needed
       // RootNavigator will keep user on Main since they're already logged in
       Alert.alert(
@@ -111,11 +112,11 @@ const OtpVerificationScreen = ({ route, navigation }) => {
     setResendLoading(true);
     setError(null);
     try {
-      await sendOtp(phone);
+      await sendOtp(contactNumber);
       setCountdown(RESEND_COUNTDOWN);
       setDigits(Array(OTP_LENGTH).fill(""));
       inputRefs.current[0]?.focus();
-      Alert.alert("OTP Sent", `A new code has been sent to ${phone}`);
+      Alert.alert("OTP Sent", `A new code has been sent to your WhatsApp (${contactNumber})`);
     } catch (err) {
       Alert.alert("Failed to Resend", err.message || "Please try again.");
     } finally {
@@ -144,10 +145,8 @@ const OtpVerificationScreen = ({ route, navigation }) => {
         />
 
         <Text style={styles.title}>Verify Your Phone</Text>
-        <Text style={styles.subtitle}>
-          Enter the 6-digit code sent to
-        </Text>
-        <Text style={styles.phone}>{phone}</Text>
+        <Text style={styles.subtitle}>Enter the 6-digit code sent to your WhatsApp</Text>
+        <Text style={styles.phone}>{contactNumber}</Text>
 
         {/* OTP digit boxes */}
         <View style={styles.otpRow}>
