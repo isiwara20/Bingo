@@ -189,6 +189,11 @@ const userSchema = new mongoose.Schema(
       default: null,
     },
 
+    verificationRejectedReason: {
+      type: String,
+      default: null,
+    },
+
     verificationLocation: {
       type: {
         type: String,

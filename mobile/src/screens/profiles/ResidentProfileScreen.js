@@ -33,7 +33,7 @@ const VerificationBadge = ({ status }) => {
     return (
       <View style={[s.verifiedBadge, { backgroundColor: COLORS.WARNING }]}>
         <Icon name="clock-outline" size={16} color="#fff" />
-        <Text style={s.verifiedBadgeTxt}>Verification Pending</Text>
+        <Text style={s.verifiedBadgeTxt}>Pending Admin Review</Text>
       </View>
     );
   }
@@ -126,8 +126,23 @@ const ResidentProfileScreen = ({ navigation }) => {
           </View>
         </View>
 
-        {/* Verification CTA — only for unverified */}
-        {!isVerified && (
+        {/* Verified confirmation */}
+        {isVerified && (
+          <View style={s.verifiedCard}>
+            <Icon name="shield-check" size={24} color={COLORS.SUCCESS} />
+            <View style={{ flex: 1 }}>
+              <Text style={s.verifiedCardTitle}>Profile Verified</Text>
+              <Text style={s.verifiedCardSub}>
+                Verified on {user?.verifiedAt
+                  ? new Date(user.verifiedAt).toLocaleDateString()
+                  : "—"}
+              </Text>
+            </View>
+          </View>
+        )}
+
+        {/* Verification CTA — only when not verified and not pending/rejected */}
+        {!isVerified && user?.verificationStatus !== "pending" && user?.verificationStatus !== "rejected" && (
           <TouchableOpacity
             style={s.verifyBanner}
             onPress={handleVerify}
@@ -149,19 +164,34 @@ const ResidentProfileScreen = ({ navigation }) => {
           </TouchableOpacity>
         )}
 
-        {/* Verified confirmation */}
-        {isVerified && (
-          <View style={s.verifiedCard}>
-            <Icon name="shield-check" size={24} color={COLORS.SUCCESS} />
+        {/* Pending review card */}
+        {user?.verificationStatus === "pending" && (
+          <View style={[s.verifiedCard, { backgroundColor: "#FFF3E0", borderColor: "#FFE0B2" }]}>
+            <Icon name="clock-outline" size={24} color={COLORS.WARNING} />
             <View style={{ flex: 1 }}>
-              <Text style={s.verifiedCardTitle}>Profile Verified</Text>
+              <Text style={[s.verifiedCardTitle, { color: COLORS.WARNING }]}>Under Review</Text>
               <Text style={s.verifiedCardSub}>
-                Verified on {user?.verifiedAt
-                  ? new Date(user.verifiedAt).toLocaleDateString()
-                  : "—"}
+                Your verification is being reviewed by the BinGo admin team. You'll be notified via WhatsApp.
               </Text>
             </View>
           </View>
+        )}
+
+        {/* Rejected card */}
+        {user?.verificationStatus === "rejected" && (
+          <TouchableOpacity
+            style={[s.verifiedCard, { backgroundColor: "#FFEBEE", borderColor: "#FFCDD2" }]}
+            onPress={handleVerify}
+          >
+            <Icon name="close-circle" size={24} color={COLORS.ERROR} />
+            <View style={{ flex: 1 }}>
+              <Text style={[s.verifiedCardTitle, { color: COLORS.ERROR }]}>Verification Rejected</Text>
+              <Text style={s.verifiedCardSub}>
+                {user?.verificationRejectedReason || "Your verification was not approved. Tap to resubmit."}
+              </Text>
+            </View>
+            <Icon name="chevron-right" size={18} color={COLORS.ERROR} />
+          </TouchableOpacity>
         )}
 
         {/* Info section */}

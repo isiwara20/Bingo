@@ -15,22 +15,24 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import COLORS from "../constants/colors";
 
-import AdminDashboardScreen from "../screens/admin/AdminDashboardScreen";
-import AdminUsersScreen     from "../screens/admin/AdminUsersScreen";
-import AdminReportsScreen   from "../screens/admin/AdminReportsScreen";
-import AdminSmsConfigScreen from "../screens/admin/AdminSmsConfigScreen";
-import AdminSettingsScreen  from "../screens/admin/AdminSettingsScreen";
-import AdminPlansScreen     from "../screens/admin/AdminPlansScreen";
+import AdminDashboardScreen    from "../screens/admin/AdminDashboardScreen";
+import AdminUsersScreen        from "../screens/admin/AdminUsersScreen";
+import AdminReportsScreen      from "../screens/admin/AdminReportsScreen";
+import AdminSmsConfigScreen    from "../screens/admin/AdminSmsConfigScreen";
+import AdminSettingsScreen     from "../screens/admin/AdminSettingsScreen";
+import AdminPlansScreen        from "../screens/admin/AdminPlansScreen";
+import AdminVerificationScreen from "../screens/admin/AdminVerificationScreen";
 
 const Tab = createBottomTabNavigator();
 
 const TAB_ICONS = {
-  Dashboard:    { active: "view-dashboard",       inactive: "view-dashboard-outline" },
-  Users:        { active: "account-group",         inactive: "account-group-outline" },
-  Reports:      { active: "clipboard-list",        inactive: "clipboard-list-outline" },
-  Plans:        { active: "tag-multiple",          inactive: "tag-multiple-outline" },
-  "SMS Config": { active: "message-cog",           inactive: "message-cog-outline" },
-  Settings:     { active: "cog",                   inactive: "cog-outline" },
+  Dashboard:      { active: "view-dashboard",         inactive: "view-dashboard-outline" },
+  Users:          { active: "account-group",           inactive: "account-group-outline" },
+  Verifications:  { active: "shield-check",            inactive: "shield-check-outline" },
+  Reports:        { active: "clipboard-list",          inactive: "clipboard-list-outline" },
+  Plans:          { active: "tag-multiple",            inactive: "tag-multiple-outline" },
+  "SMS Config":   { active: "message-cog",             inactive: "message-cog-outline" },
+  Settings:       { active: "cog",                     inactive: "cog-outline" },
 };
 
 const AdminNavigator = () => {
@@ -65,12 +67,13 @@ const AdminNavigator = () => {
         },
       })}
     >
-      <Tab.Screen name="Dashboard"  component={AdminDashboardScreen} />
-      <Tab.Screen name="Users"      component={AdminUsersScreen} />
-      <Tab.Screen name="Reports"    component={AdminReportsScreen} />
-      <Tab.Screen name="Plans"      component={AdminPlansScreen} />
-      <Tab.Screen name="SMS Config" component={AdminSmsConfigScreen} />
-      <Tab.Screen name="Settings"   component={AdminSettingsScreen} />
+      <Tab.Screen name="Dashboard"     component={AdminDashboardScreen} />
+      <Tab.Screen name="Users"         component={AdminUsersScreen} />
+      <Tab.Screen name="Verifications" component={AdminVerificationScreen} />
+      <Tab.Screen name="Reports"       component={AdminReportsScreen} />
+      <Tab.Screen name="Plans"         component={AdminPlansScreen} />
+      <Tab.Screen name="SMS Config"    component={AdminSmsConfigScreen} />
+      <Tab.Screen name="Settings"      component={AdminSettingsScreen} />
     </Tab.Navigator>
   );
 };
