@@ -20,6 +20,7 @@ const rewardRoutes       = require("./rewardRoutes");
 const paymentRoutes      = require("./paymentRoutes");
 const adminRoutes        = require("./adminRoutes");
 const planRoutes         = require("./planRoutes");
+const reminderRoutes = require("./reminderRoutes");
 
 // ── Health Check ───────────────────────────────────────────────────────────
 const mongoose = require("mongoose");
@@ -55,5 +56,7 @@ router.use("/admin",         adminRoutes);
 router.use("/plans",         planRoutes);
 
 router.use("/goals", require("./goalRoutes"));
+
+router.use("/reminders", reminderRoutes);
 
 module.exports = router;

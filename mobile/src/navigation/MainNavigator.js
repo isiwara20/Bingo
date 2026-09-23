@@ -36,7 +36,11 @@ import WasteMapScreen           from "../screens/WasteMapScreen";
 import CollectionScheduleScreen from "../screens/CollectionScheduleScreen";
 import RecyclingGuideScreen     from "../screens/RecyclingGuideScreen";
 import CommunityScreen          from "../screens/CommunityScreen";
+import CommunityDetailsScreen   from "../screens/CommunityDetailsScreen";
+import CommunityCreateScreen    from "../screens/CommunityCreateScreen";
+import CommunityMineScreen      from "../screens/CommunityMineScreen";
 import NotificationsScreen      from "../screens/NotificationsScreen";
+import NotificationSettingsScreen from "../screens/NotificationSettingsScreen";
 import RewardsScreen            from "../screens/RewardsScreen";
 import ProfileScreen            from "../screens/ProfileScreen";
 import SettingsScreen           from "../screens/SettingsScreen";
@@ -74,6 +78,7 @@ const makeHomeStack = (role) => {
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="HomeMain"      component={Dashboard} />
       <Stack.Screen name="Notifications" component={NotificationsScreen} />
+      <Stack.Screen name="NotificationSettings" component={NotificationSettingsScreen} />
       <Stack.Screen name="Rewards"       component={RewardsScreen} />
       <Stack.Screen name="Payment"       component={PaymentScreen} />
       <Stack.Screen name="Settings"      component={SettingsScreen} />
@@ -88,6 +93,15 @@ const ReportStack = () => (
     <Stack.Screen name="ReportReview"  component={ReportReviewScreen} />
     <Stack.Screen name="ReportDetails" component={ReportDetailsScreen} />
     <Stack.Screen name="ReportStatus"  component={ReportStatusScreen} />
+  </Stack.Navigator>
+);
+
+const CommunityStack = () => (
+  <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Screen name="CommunityMain"    component={CommunityScreen} />
+    <Stack.Screen name="CommunityDetails" component={CommunityDetailsScreen} />
+    <Stack.Screen name="CommunityCreate"  component={CommunityCreateScreen} />
+    <Stack.Screen name="CommunityMine"    component={CommunityMineScreen} />
   </Stack.Navigator>
 );
 

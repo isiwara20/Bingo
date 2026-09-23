@@ -5,13 +5,15 @@
  * Sections: Quick Actions · Upcoming Collection · Recent Reports · Reward Points
  */
 
-import React, { useCallback, useEffect, useState } from "react";
+import React, { useCallback, useState } from "react";
 import {
   View, Text, StyleSheet, ScrollView,
   TouchableOpacity, ActivityIndicator, RefreshControl,
 } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
 import { useAuth } from "../context/AuthContext";
 import { logout as logoutApi } from "../services/authService";
+import { getRewards } from "../services/rewardService";
 import DashboardHeader from "../components/DashboardHeader";
 import COLORS from "../constants/colors";
 import GoalSummaryCard from "../components/goals/GoalSummaryCard";
@@ -62,6 +64,7 @@ const StatChip = ({ emoji, label, value, color }) => (
 const ResidentDashboard = ({ navigation }) => {
   const { user, logout } = useAuth();
   const [reports,  setReports]  = useState([]);
+  const [points,   setPoints]   = useState(null);
   const [loading,  setLoading]  = useState(true);
   const [refresh,  setRefresh]  = useState(false);
 
@@ -76,9 +79,15 @@ const ResidentDashboard = ({ navigation }) => {
       setLoading(false);
       setRefresh(false);
     }
+    try {
+      const rewards = await getRewards();
+      setPoints(rewards.points);
+    } catch (_) {
+      // keep whatever points value we already have
+    }
   }, []);
 
-  useEffect(() => { load(); }, [load]);
+  useFocusEffect(useCallback(() => { load(); }, [load]));
 
   const handleLogout = async () => {
     try { await logoutApi(); } catch (_) {}
@@ -114,7 +123,7 @@ const ResidentDashboard = ({ navigation }) => {
           <StatChip emoji="📋" label="Reports"  value={reports.length} color={COLORS.INFO} />
           <StatChip emoji="⏳" label="Pending"  value={pending}        color={COLORS.WARNING} />
           <StatChip emoji="✅" label="Resolved" value={resolved}       color={COLORS.SUCCESS} />
-          <StatChip emoji="⭐" label="Points"   value={user?.rewardPoints || 0} color={COLORS.SECONDARY} />
+          <StatChip emoji="⭐" label="Points"   value={points ?? user?.rewardPoints ?? 0} color={COLORS.SECONDARY} />
         </View>
 
         <GoalSummaryCard navigation={navigation} />
@@ -167,7 +176,7 @@ const ResidentDashboard = ({ navigation }) => {
         {/* Reward points */}
         <SectionTitle>Reward Points</SectionTitle>
         <TouchableOpacity style={styles.rewardCard} onPress={() => navigation.navigate("Rewards")}>
-          <Text style={styles.rewardPoints}>{user?.rewardPoints || 0}</Text>
+          <Text style={styles.rewardPoints}>{points ?? user?.rewardPoints ?? 0}</Text>
           <Text style={styles.rewardLabel}>points earned</Text>
           <Text style={styles.rewardLink}>View rewards →</Text>
         </TouchableOpacity>
