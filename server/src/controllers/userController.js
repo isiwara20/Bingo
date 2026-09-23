@@ -105,6 +105,8 @@ const reviewVerification = asyncHandler(async (req, res) => {
     action === "approve" ? "Verification approved." : "Verification rejected.",
     { verificationStatus: user.verificationStatus, profileVerified: user.profileVerified }
   );
+});
+
 // PUT /api/v1/users/change-password
 const changePassword = asyncHandler(async (req, res) => {
   const { currentPassword, newPassword } = req.body;

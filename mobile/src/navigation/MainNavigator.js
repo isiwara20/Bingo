@@ -18,6 +18,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 
 import { useAuth } from "../context/AuthContext";
+import { useTheme } from "../context/ThemeContext";
+import { getUiText } from "../constants/translations";
 import COLORS from "../constants/colors";
 
 // Role dashboards
@@ -118,6 +120,8 @@ const makeProfileStack = (role) => {
 // ── Main Tab Navigator ────────────────────────────────────────────────────────
 const MainNavigator = () => {
   const { user } = useAuth();
+  const { darkMode, language } = useTheme();
+  const text = getUiText(language);
   const insets = useSafeAreaInsets();
   const role = user?.role || "resident";
   const HomeStack    = React.useMemo(() => makeHomeStack(role), [role]);
@@ -128,10 +132,10 @@ const MainNavigator = () => {
       screenOptions={({ route }) => ({
         headerShown: false,
         tabBarActiveTintColor:   COLORS.PRIMARY,
-        tabBarInactiveTintColor: COLORS.TEXT_SECONDARY,
+        tabBarInactiveTintColor: darkMode ? "#BDBDBD" : COLORS.TEXT_SECONDARY,
         tabBarStyle: {
-          backgroundColor: COLORS.SURFACE,
-          borderTopColor:  COLORS.BORDER,
+          backgroundColor: darkMode ? "#1E1E1E" : COLORS.SURFACE,
+          borderTopColor:  darkMode ? "#383838" : COLORS.BORDER,
           borderTopWidth:  1,
           // Respect phone's navigation bar height
           height: 56 + insets.bottom,
@@ -152,15 +156,17 @@ const MainNavigator = () => {
         },
       })}
     >
-      <Tab.Screen name="Home"      component={HomeStack}               options={{ tabBarLabel: "Home" }} />
-      <Tab.Screen name="Report"    component={ReportStack}             options={{ tabBarLabel: "Report" }} />
-      <Tab.Screen name="Map"       component={MapStack}                options={{ tabBarLabel: "Map" }} />
-      <Tab.Screen name="Schedule"  component={CollectionScheduleScreen} options={{ tabBarLabel: "Schedule" }} />
-      <Tab.Screen name="Community" component={CommunityScreen}         options={{ tabBarLabel: "Community" }} />
-      <Tab.Screen name="Recycling" component={RecyclingGuideScreen}    options={{ tabBarLabel: "Recycle" }} />
-      <Tab.Screen name="Profile"   component={ProfileStack}            options={{ tabBarLabel: "Profile" }} />
+      <Tab.Screen name="Home"      component={HomeStack}               options={{ tabBarLabel: text.home }} />
+      <Tab.Screen name="Report"    component={ReportStack}             options={{ tabBarLabel: text.report }} />
+      <Tab.Screen name="Map"       component={MapStack}                options={{ tabBarLabel: text.map }} />
+      <Tab.Screen name="Schedule"  component={CollectionScheduleScreen} options={{ tabBarLabel: text.schedule }} />
+      <Tab.Screen name="Community" component={CommunityScreen}         options={{ tabBarLabel: text.community }} />
+      <Tab.Screen name="Recycling" component={RecyclingGuideScreen}    options={{ tabBarLabel: text.recycle }} />
+      <Tab.Screen name="Profile"   component={ProfileStack}            options={{ tabBarLabel: text.profile }} />
     </Tab.Navigator>
   );
 };
 
 export default MainNavigator;
+
+

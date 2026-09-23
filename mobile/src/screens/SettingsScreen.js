@@ -16,7 +16,7 @@
  *  - Account deactivation & sign out
  */
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
   Switch, TextInput, Modal, Alert, ActivityIndicator, Image,
@@ -25,9 +25,11 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import { useAuth } from "../context/AuthContext";
+import { useTheme } from "../context/ThemeContext";
 import { logout as logoutApi } from "../services/authService";
 import api from "../api/apiClient";
 import COLORS from "../constants/colors";
+import { getUiText } from "../constants/translations";
 
 const STORAGE_KEY = "@bingo_user_settings";
 
@@ -89,7 +91,9 @@ const FAQS = [
 
 const SettingsScreen = ({ navigation }) => {
   const { user, logout, updateUser } = useAuth();
+  const { darkMode: appDarkMode, setDarkMode: setAppDarkMode, language: appLanguage, setLanguage: setAppLanguage } = useTheme();
   const role = user?.role || "resident";
+  const uiText = getUiText(appLanguage);
   const theme = ROLE_THEME[role] || ROLE_THEME.resident;
 
   // ── Notification & Preference State ──────────────────────────────────────────
@@ -133,11 +137,15 @@ const SettingsScreen = ({ navigation }) => {
 
   const [loggingOut, setLoggingOut]               = useState(false);
 
-  // Load preferences from AsyncStorage on mount
+  const storageKey = STORAGE_KEY + ':' + (user?._id || user?.id || user?.email || role);
+  const pendingSave = useRef(Promise.resolve());
+  const [preferencesLoaded, setPreferencesLoaded] = useState(false);
+
+  // Load preferences for the signed-in account.
   useEffect(() => {
     (async () => {
       try {
-        const stored = await AsyncStorage.getItem(STORAGE_KEY);
+        const stored = await AsyncStorage.getItem(storageKey);
         if (stored) {
           const parsed = JSON.parse(stored);
           if (parsed.pushEnabled !== undefined) setPushEnabled(parsed.pushEnabled);
@@ -154,18 +162,25 @@ const SettingsScreen = ({ navigation }) => {
           if (parsed.unitKm !== undefined) setUnitKm(parsed.unitKm);
           if (parsed.language) setLanguage(parsed.language);
         }
-      } catch (_) {}
+      } catch (_) {
+        Alert.alert("Settings unavailable", "Could not load your saved preferences. Please reopen Settings.");
+      } finally {
+        setPreferencesLoaded(true);
+      }
     })();
-  }, []);
+  }, [storageKey]);
 
   // Save preferences
-  const savePref = async (key, val) => {
-    try {
-      const stored = await AsyncStorage.getItem(STORAGE_KEY);
+  const savePref = (key, val) => {
+    // Serialize updates so quickly changing two switches cannot lose a setting.
+    pendingSave.current = pendingSave.current.then(async () => {
+      const stored = await AsyncStorage.getItem(storageKey);
       const prev = stored ? JSON.parse(stored) : {};
-      prev[key] = val;
-      await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(prev));
-    } catch (_) {}
+      await AsyncStorage.setItem(storageKey, JSON.stringify({ ...prev, [key]: val }));
+    }).catch(() => {
+      Alert.alert("Settings not saved", "Could not save this preference. Please try again.");
+    });
+    return pendingSave.current;
   };
 
   // ── Edit Profile Handler ─────────────────────────────────────────────────────
@@ -198,7 +213,7 @@ const SettingsScreen = ({ navigation }) => {
       }
 
       const res = await api.put("/users/me", payload);
-      const updatedUser = res.data?.data || { ...user, ...payload };
+      const updatedUser = { ...user, ...payload, ...res.data?.data };
       await updateUser(updatedUser);
       setEditProfileOpen(false);
       Alert.alert("Success", "Profile updated successfully.");
@@ -293,10 +308,14 @@ const SettingsScreen = ({ navigation }) => {
     );
   };
 
+  if (!preferencesLoaded) {
+    return <SafeAreaView style={[styles.container, appDarkMode && darkStyles.container]}><ActivityIndicator accessibilityLabel="Loading settings" color={theme.primary} /></SafeAreaView>;
+  }
+
   return (
-    <SafeAreaView style={styles.container}>
+    <SafeAreaView style={[styles.container, appDarkMode && darkStyles.container]}>
       {/* Header */}
-      <View style={styles.header}>
+      <View style={[styles.header, appDarkMode && darkStyles.header]}>
         <TouchableOpacity
           onPress={() => (navigation.canGoBack() ? navigation.goBack() : navigation.navigate("ProfileMain"))}
           style={styles.backBtn}
@@ -306,14 +325,14 @@ const SettingsScreen = ({ navigation }) => {
           <Icon name="arrow-left" size={22} color={theme.primary} />
         </TouchableOpacity>
         <View style={{ flex: 1 }}>
-          <Text style={styles.headerTitle}>Settings</Text>
-          <Text style={styles.headerSub}>{theme.badgeText} Preferences</Text>
+          <Text style={[styles.headerTitle, appDarkMode && darkStyles.text]}>{uiText.settings}</Text>
+          <Text style={[styles.headerSub, appDarkMode && darkStyles.subtext]}>{theme.badgeText} {uiText.preferences}</Text>
         </View>
       </View>
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         {/* Profile summary card */}
-        <View style={styles.profileCard}>
+        <View style={[styles.profileCard, appDarkMode && darkStyles.card]}>
           <View style={[styles.avatar, { backgroundColor: theme.primary }]}>
             {user?.faceImage ? (
               <Image source={{ uri: user.faceImage }} style={styles.avatarImg} />
@@ -322,8 +341,8 @@ const SettingsScreen = ({ navigation }) => {
             )}
           </View>
           <View style={{ flex: 1 }}>
-            <Text style={styles.profileName} numberOfLines={1}>{user?.name || "User"}</Text>
-            <Text style={styles.profileEmail} numberOfLines={1}>{user?.email}</Text>
+            <Text style={[styles.profileName, appDarkMode && darkStyles.text]} numberOfLines={1}>{user?.name || "User"}</Text>
+            <Text style={[styles.profileEmail, appDarkMode && darkStyles.subtext]} numberOfLines={1}>{user?.email}</Text>
             <View style={[styles.badge, { backgroundColor: theme.light }]}>
               <Icon name={theme.badgeIcon} size={13} color={theme.primary} />
               <Text style={[styles.badgeTxt, { color: theme.primary }]}>{theme.badgeText}</Text>
@@ -342,15 +361,15 @@ const SettingsScreen = ({ navigation }) => {
         {/* ── ROLE-SPECIFIC SETTINGS ────────────────────────────────────────── */}
         {role === "resident" && (
           <View style={styles.sectionWrap}>
-            <Text style={styles.sectionHeader}>Resident Features</Text>
-            <View style={styles.card}>
+            <Text style={[styles.sectionHeader, appDarkMode && darkStyles.subtext]}>Resident Features</Text>
+            <View style={[styles.card, appDarkMode && darkStyles.card]}>
               <View style={styles.row}>
                 <View style={[styles.rowIcon, { backgroundColor: "#E8F5E9" }]}>
                   <Icon name="calendar-clock" size={20} color={COLORS.PRIMARY} />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.rowTitle}>Waste Collection Reminders</Text>
-                  <Text style={styles.rowSub}>Get alerted before weekly truck arrival</Text>
+                  <Text style={[styles.rowTitle, appDarkMode && darkStyles.text]}>Waste Collection Reminders</Text>
+                  <Text style={[styles.rowSub, appDarkMode && darkStyles.subtext]}>Get alerted before weekly truck arrival</Text>
                 </View>
                 <Switch
                   value={pickupReminders}
@@ -360,15 +379,15 @@ const SettingsScreen = ({ navigation }) => {
                 />
               </View>
 
-              <View style={styles.divider} />
+              <View style={[styles.divider, appDarkMode && darkStyles.divider]} />
 
               <View style={styles.row}>
                 <View style={[styles.rowIcon, { backgroundColor: "#E8F5E9" }]}>
                   <Icon name="recycle-variant" size={20} color={COLORS.PRIMARY} />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.rowTitle}>Recycling & Green Tips</Text>
-                  <Text style={styles.rowSub}>Weekly eco-points & sorting updates</Text>
+                  <Text style={[styles.rowTitle, appDarkMode && darkStyles.text]}>Recycling & Green Tips</Text>
+                  <Text style={[styles.rowSub, appDarkMode && darkStyles.subtext]}>Weekly eco-points & sorting updates</Text>
                 </View>
                 <Switch
                   value={recycleTips}
@@ -378,7 +397,7 @@ const SettingsScreen = ({ navigation }) => {
                 />
               </View>
 
-              <View style={styles.divider} />
+              <View style={[styles.divider, appDarkMode && darkStyles.divider]} />
 
               <TouchableOpacity
                 style={styles.row}
@@ -389,8 +408,8 @@ const SettingsScreen = ({ navigation }) => {
                   <Icon name="shield-check" size={20} color={COLORS.PRIMARY} />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.rowTitle}>Residence Verification</Text>
-                  <Text style={styles.rowSub}>
+                  <Text style={[styles.rowTitle, appDarkMode && darkStyles.text]}>Residence Verification</Text>
+                  <Text style={[styles.rowSub, appDarkMode && darkStyles.subtext]}>
                     {user?.profileVerified
                       ? "Profile Verified (Tap to view details)"
                       : user?.verificationStatus === "pending"
@@ -406,15 +425,15 @@ const SettingsScreen = ({ navigation }) => {
 
         {role === "community_leader" && (
           <View style={styles.sectionWrap}>
-            <Text style={styles.sectionHeader}>Leader Controls</Text>
-            <View style={styles.card}>
+            <Text style={[styles.sectionHeader, appDarkMode && darkStyles.subtext]}>Leader Controls</Text>
+            <View style={[styles.card, appDarkMode && darkStyles.card]}>
               <View style={styles.row}>
                 <View style={[styles.rowIcon, { backgroundColor: "#E3F2FD" }]}>
                   <Icon name="bullhorn-outline" size={20} color="#1565C0" />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.rowTitle}>Ward Incident Broadcasts</Text>
-                  <Text style={styles.rowSub}>Alerts when dumping is reported in your community</Text>
+                  <Text style={[styles.rowTitle, appDarkMode && darkStyles.text]}>Ward Incident Broadcasts</Text>
+                  <Text style={[styles.rowSub, appDarkMode && darkStyles.subtext]}>Alerts when dumping is reported in your community</Text>
                 </View>
                 <Switch
                   value={leaderBroadcasts}
@@ -424,15 +443,15 @@ const SettingsScreen = ({ navigation }) => {
                 />
               </View>
 
-              <View style={styles.divider} />
+              <View style={[styles.divider, appDarkMode && darkStyles.divider]} />
 
               <View style={styles.row}>
                 <View style={[styles.rowIcon, { backgroundColor: "#E3F2FD" }]}>
                   <Icon name="chart-box-outline" size={20} color="#1565C0" />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.rowTitle}>Weekly Cleanliness Digest</Text>
-                  <Text style={styles.rowSub}>Summary of cleared reports & active issues</Text>
+                  <Text style={[styles.rowTitle, appDarkMode && darkStyles.text]}>Weekly Cleanliness Digest</Text>
+                  <Text style={[styles.rowSub, appDarkMode && darkStyles.subtext]}>Summary of cleared reports & active issues</Text>
                 </View>
                 <Switch
                   value={cleanlinessDigest}
@@ -447,15 +466,15 @@ const SettingsScreen = ({ navigation }) => {
 
         {role === "waste_authority" && (
           <View style={styles.sectionWrap}>
-            <Text style={styles.sectionHeader}>Authority Operations</Text>
-            <View style={styles.card}>
+            <Text style={[styles.sectionHeader, appDarkMode && darkStyles.subtext]}>Authority Operations</Text>
+            <View style={[styles.card, appDarkMode && darkStyles.card]}>
               <View style={styles.row}>
                 <View style={[styles.rowIcon, { backgroundColor: "#E0F2F1" }]}>
                   <Icon name="truck-fast-outline" size={20} color="#00695C" />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.rowTitle}>Emergency Dispatch Alerts</Text>
-                  <Text style={styles.rowSub}>High-priority notifications for overflow dumpsters</Text>
+                  <Text style={[styles.rowTitle, appDarkMode && darkStyles.text]}>Emergency Dispatch Alerts</Text>
+                  <Text style={[styles.rowSub, appDarkMode && darkStyles.subtext]}>High-priority notifications for overflow dumpsters</Text>
                 </View>
                 <Switch
                   value={dispatchAlerts}
@@ -465,15 +484,15 @@ const SettingsScreen = ({ navigation }) => {
                 />
               </View>
 
-              <View style={styles.divider} />
+              <View style={[styles.divider, appDarkMode && darkStyles.divider]} />
 
               <View style={styles.row}>
                 <View style={[styles.rowIcon, { backgroundColor: "#E0F2F1" }]}>
                   <Icon name="map-clock-outline" size={20} color="#00695C" />
                 </View>
                 <View style={{ flex: 1 }}>
-                  <Text style={styles.rowTitle}>Live Map Auto-Refresh</Text>
-                  <Text style={styles.rowSub}>Continuously update active truck & bin markers</Text>
+                  <Text style={[styles.rowTitle, appDarkMode && darkStyles.text]}>Live Map Auto-Refresh</Text>
+                  <Text style={[styles.rowSub, appDarkMode && darkStyles.subtext]}>Continuously update active truck & bin markers</Text>
                 </View>
                 <Switch
                   value={autoRefreshMap}
@@ -488,15 +507,15 @@ const SettingsScreen = ({ navigation }) => {
 
         {/* ── NOTIFICATIONS & ALERTS ───────────────────────────────────────── */}
         <View style={styles.sectionWrap}>
-          <Text style={styles.sectionHeader}>Notifications & Alerts</Text>
-          <View style={styles.card}>
+          <Text style={[styles.sectionHeader, appDarkMode && darkStyles.subtext]}>Notifications & Alerts</Text>
+          <View style={[styles.card, appDarkMode && darkStyles.card]}>
             <View style={styles.row}>
               <View style={[styles.rowIcon, { backgroundColor: theme.light }]}>
                 <Icon name="bell-ring-outline" size={20} color={theme.primary} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.rowTitle}>Push Notifications</Text>
-                <Text style={styles.rowSub}>Receive real-time alerts on your device</Text>
+                <Text style={[styles.rowTitle, appDarkMode && darkStyles.text]}>Push Notifications</Text>
+                <Text style={[styles.rowSub, appDarkMode && darkStyles.subtext]}>Receive real-time alerts on your device</Text>
               </View>
               <Switch
                 value={pushEnabled}
@@ -506,15 +525,15 @@ const SettingsScreen = ({ navigation }) => {
               />
             </View>
 
-            <View style={styles.divider} />
+            <View style={[styles.divider, appDarkMode && darkStyles.divider]} />
 
             <View style={styles.row}>
               <View style={[styles.rowIcon, { backgroundColor: "#E8F5E9" }]}>
                 <Icon name="whatsapp" size={20} color="#25D366" />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.rowTitle}>WhatsApp Updates</Text>
-                <Text style={styles.rowSub}>Status notifications sent to your WhatsApp</Text>
+                <Text style={[styles.rowTitle, appDarkMode && darkStyles.text]}>WhatsApp Updates</Text>
+                <Text style={[styles.rowSub, appDarkMode && darkStyles.subtext]}>Status notifications sent to your WhatsApp</Text>
               </View>
               <Switch
                 value={whatsappEnabled}
@@ -524,15 +543,15 @@ const SettingsScreen = ({ navigation }) => {
               />
             </View>
 
-            <View style={styles.divider} />
+            <View style={[styles.divider, appDarkMode && darkStyles.divider]} />
 
             <View style={styles.row}>
               <View style={[styles.rowIcon, { backgroundColor: theme.light }]}>
                 <Icon name="volume-high" size={20} color={theme.primary} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.rowTitle}>Sound & Vibration</Text>
-                <Text style={styles.rowSub}>Play alert sound on important notices</Text>
+                <Text style={[styles.rowTitle, appDarkMode && darkStyles.text]}>Sound & Vibration</Text>
+                <Text style={[styles.rowSub, appDarkMode && darkStyles.subtext]}>Play alert sound on important notices</Text>
               </View>
               <Switch
                 value={soundEnabled}
@@ -546,8 +565,8 @@ const SettingsScreen = ({ navigation }) => {
 
         {/* ── APP PREFERENCES ─────────────────────────────────────────────── */}
         <View style={styles.sectionWrap}>
-          <Text style={styles.sectionHeader}>Preferences</Text>
-          <View style={styles.card}>
+          <Text style={[styles.sectionHeader, appDarkMode && darkStyles.subtext]}>Preferences</Text>
+          <View style={[styles.card, appDarkMode && darkStyles.card]}>
             <TouchableOpacity
               style={styles.row}
               onPress={() => setLangModalOpen(true)}
@@ -557,13 +576,13 @@ const SettingsScreen = ({ navigation }) => {
                 <Icon name="translate" size={20} color={theme.primary} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.rowTitle}>Language</Text>
-                <Text style={styles.rowSub}>{language}</Text>
+                <Text style={[styles.rowTitle, appDarkMode && darkStyles.text]}>Language</Text>
+                <Text style={[styles.rowSub, appDarkMode && darkStyles.subtext]}>{language}</Text>
               </View>
               <Icon name="chevron-right" size={20} color={COLORS.TEXT_DISABLED} />
             </TouchableOpacity>
 
-            <View style={styles.divider} />
+            <View style={[styles.divider, appDarkMode && darkStyles.divider]} />
 
             <TouchableOpacity
               style={styles.row}
@@ -578,39 +597,39 @@ const SettingsScreen = ({ navigation }) => {
                 <Icon name="map-marker-distance" size={20} color={theme.primary} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.rowTitle}>Distance Units</Text>
-                <Text style={styles.rowSub}>{unitKm ? "Kilometers (km)" : "Miles (mi)"}</Text>
+                <Text style={[styles.rowTitle, appDarkMode && darkStyles.text]}>Distance Units</Text>
+                <Text style={[styles.rowSub, appDarkMode && darkStyles.subtext]}>{unitKm ? "Kilometers (km)" : "Miles (mi)"}</Text>
               </View>
               <Icon name="swap-horizontal" size={20} color={theme.primary} />
             </TouchableOpacity>
 
-            <View style={styles.divider} />
+            <View style={[styles.divider, appDarkMode && darkStyles.divider]} />
 
             <View style={styles.row}>
               <View style={[styles.rowIcon, { backgroundColor: theme.light }]}>
                 <Icon name="weather-night" size={20} color={theme.primary} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.rowTitle}>Dark Mode</Text>
-                <Text style={styles.rowSub}>Match device system theme</Text>
+                <Text style={[styles.rowTitle, appDarkMode && darkStyles.text]}>Dark Mode</Text>
+                <Text style={[styles.rowSub, appDarkMode && darkStyles.subtext]}>Match device system theme</Text>
               </View>
               <Switch
                 value={darkMode}
-                onValueChange={(val) => { setDarkMode(val); savePref("darkMode", val); }}
+                onValueChange={async (val) => { setDarkMode(val); await setAppDarkMode(val); }}
                 trackColor={{ false: "#E0E0E0", true: theme.primary + "77" }}
                 thumbColor={darkMode ? theme.primary : "#f4f3f4"}
               />
             </View>
 
-            <View style={styles.divider} />
+            <View style={[styles.divider, appDarkMode && darkStyles.divider]} />
 
             <View style={styles.row}>
               <View style={[styles.rowIcon, { backgroundColor: theme.light }]}>
                 <Icon name="database-outline" size={20} color={theme.primary} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.rowTitle}>Low Data Mode</Text>
-                <Text style={styles.rowSub}>Optimise map tiles & photo previews</Text>
+                <Text style={[styles.rowTitle, appDarkMode && darkStyles.text]}>Low Data Mode</Text>
+                <Text style={[styles.rowSub, appDarkMode && darkStyles.subtext]}>Optimise map tiles & photo previews</Text>
               </View>
               <Switch
                 value={lowDataMode}
@@ -624,8 +643,8 @@ const SettingsScreen = ({ navigation }) => {
 
         {/* ── ACCOUNT & SECURITY ───────────────────────────────────────────── */}
         <View style={styles.sectionWrap}>
-          <Text style={styles.sectionHeader}>Security & Storage</Text>
-          <View style={styles.card}>
+          <Text style={[styles.sectionHeader, appDarkMode && darkStyles.subtext]}>Security & Storage</Text>
+          <View style={[styles.card, appDarkMode && darkStyles.card]}>
             <TouchableOpacity
               style={styles.row}
               onPress={() => setChangePassOpen(true)}
@@ -635,13 +654,13 @@ const SettingsScreen = ({ navigation }) => {
                 <Icon name="lock-reset" size={20} color={theme.primary} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.rowTitle}>Change Password</Text>
-                <Text style={styles.rowSub}>Update your account security credentials</Text>
+                <Text style={[styles.rowTitle, appDarkMode && darkStyles.text]}>Change Password</Text>
+                <Text style={[styles.rowSub, appDarkMode && darkStyles.subtext]}>Update your account security credentials</Text>
               </View>
               <Icon name="chevron-right" size={20} color={COLORS.TEXT_DISABLED} />
             </TouchableOpacity>
 
-            <View style={styles.divider} />
+            <View style={[styles.divider, appDarkMode && darkStyles.divider]} />
 
             <TouchableOpacity
               style={styles.row}
@@ -652,8 +671,8 @@ const SettingsScreen = ({ navigation }) => {
                 <Icon name="broom" size={20} color={theme.primary} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.rowTitle}>Clear Cache</Text>
-                <Text style={styles.rowSub}>Free up local app storage</Text>
+                <Text style={[styles.rowTitle, appDarkMode && darkStyles.text]}>Clear Cache</Text>
+                <Text style={[styles.rowSub, appDarkMode && darkStyles.subtext]}>Free up local app storage</Text>
               </View>
               <Icon name="chevron-right" size={20} color={COLORS.TEXT_DISABLED} />
             </TouchableOpacity>
@@ -662,8 +681,8 @@ const SettingsScreen = ({ navigation }) => {
 
         {/* ── HELP & LEGAL ─────────────────────────────────────────────────── */}
         <View style={styles.sectionWrap}>
-          <Text style={styles.sectionHeader}>Support & Legal</Text>
-          <View style={styles.card}>
+          <Text style={[styles.sectionHeader, appDarkMode && darkStyles.subtext]}>Support & Legal</Text>
+          <View style={[styles.card, appDarkMode && darkStyles.card]}>
             <TouchableOpacity
               style={styles.row}
               onPress={() => setFaqModalOpen(true)}
@@ -673,13 +692,13 @@ const SettingsScreen = ({ navigation }) => {
                 <Icon name="help-circle-outline" size={20} color={theme.primary} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.rowTitle}>Help & FAQs</Text>
-                <Text style={styles.rowSub}>Frequently asked questions & usage guide</Text>
+                <Text style={[styles.rowTitle, appDarkMode && darkStyles.text]}>Help & FAQs</Text>
+                <Text style={[styles.rowSub, appDarkMode && darkStyles.subtext]}>Frequently asked questions & usage guide</Text>
               </View>
               <Icon name="chevron-right" size={20} color={COLORS.TEXT_DISABLED} />
             </TouchableOpacity>
 
-            <View style={styles.divider} />
+            <View style={[styles.divider, appDarkMode && darkStyles.divider]} />
 
             <TouchableOpacity
               style={styles.row}
@@ -690,13 +709,13 @@ const SettingsScreen = ({ navigation }) => {
                 <Icon name="shield-lock-outline" size={20} color={theme.primary} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.rowTitle}>Privacy Policy</Text>
-                <Text style={styles.rowSub}>How we handle and protect your data</Text>
+                <Text style={[styles.rowTitle, appDarkMode && darkStyles.text]}>Privacy Policy</Text>
+                <Text style={[styles.rowSub, appDarkMode && darkStyles.subtext]}>How we handle and protect your data</Text>
               </View>
               <Icon name="chevron-right" size={20} color={COLORS.TEXT_DISABLED} />
             </TouchableOpacity>
 
-            <View style={styles.divider} />
+            <View style={[styles.divider, appDarkMode && darkStyles.divider]} />
 
             <TouchableOpacity
               style={styles.row}
@@ -707,8 +726,8 @@ const SettingsScreen = ({ navigation }) => {
                 <Icon name="file-document-outline" size={20} color={theme.primary} />
               </View>
               <View style={{ flex: 1 }}>
-                <Text style={styles.rowTitle}>Terms of Service</Text>
-                <Text style={styles.rowSub}>Guidelines, community standards & terms</Text>
+                <Text style={[styles.rowTitle, appDarkMode && darkStyles.text]}>Terms of Service</Text>
+                <Text style={[styles.rowSub, appDarkMode && darkStyles.subtext]}>Guidelines, community standards & terms</Text>
               </View>
               <Icon name="chevron-right" size={20} color={COLORS.TEXT_DISABLED} />
             </TouchableOpacity>
@@ -717,8 +736,8 @@ const SettingsScreen = ({ navigation }) => {
 
         {/* ── DANGER ZONE ──────────────────────────────────────────────────── */}
         <View style={styles.sectionWrap}>
-          <Text style={styles.sectionHeader}>Account Actions</Text>
-          <View style={styles.card}>
+          <Text style={[styles.sectionHeader, appDarkMode && darkStyles.subtext]}>Account Actions</Text>
+          <View style={[styles.card, appDarkMode && darkStyles.card]}>
             <TouchableOpacity
               style={styles.row}
               onPress={handleLogout}
@@ -730,7 +749,7 @@ const SettingsScreen = ({ navigation }) => {
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.rowTitle, { color: COLORS.ERROR }]}>Sign Out</Text>
-                <Text style={styles.rowSub}>Log out of your current session</Text>
+                <Text style={[styles.rowSub, appDarkMode && darkStyles.subtext]}>Log out of your current session</Text>
               </View>
               {loggingOut ? (
                 <ActivityIndicator size="small" color={COLORS.ERROR} />
@@ -739,7 +758,7 @@ const SettingsScreen = ({ navigation }) => {
               )}
             </TouchableOpacity>
 
-            <View style={styles.divider} />
+            <View style={[styles.divider, appDarkMode && darkStyles.divider]} />
 
             <TouchableOpacity
               style={styles.row}
@@ -751,7 +770,7 @@ const SettingsScreen = ({ navigation }) => {
               </View>
               <View style={{ flex: 1 }}>
                 <Text style={[styles.rowTitle, { color: COLORS.ERROR }]}>Deactivate Account</Text>
-                <Text style={styles.rowSub}>Disable your profile and active submissions</Text>
+                <Text style={[styles.rowSub, appDarkMode && darkStyles.subtext]}>Disable your profile and active submissions</Text>
               </View>
               <Icon name="chevron-right" size={20} color={COLORS.ERROR} />
             </TouchableOpacity>
@@ -760,8 +779,8 @@ const SettingsScreen = ({ navigation }) => {
 
         {/* App Version Info */}
         <View style={styles.versionBox}>
-          <Text style={styles.versionTxt}>BinGo v1.0.0 (Build 42)</Text>
-          <Text style={styles.versionSub}>Neighbourhood Waste & Recycling Coordinator</Text>
+          <Text style={[styles.versionTxt, appDarkMode && darkStyles.subtext]}>BinGo v1.0.0 (Build 42)</Text>
+          <Text style={[styles.versionSub, appDarkMode && darkStyles.subtext]}>Neighbourhood Waste & Recycling Coordinator</Text>
         </View>
       </ScrollView>
 
@@ -1071,6 +1090,8 @@ const SettingsScreen = ({ navigation }) => {
   );
 };
 
+const darkStyles = StyleSheet.create({ container: { backgroundColor: "#121212" }, header: { backgroundColor: "#1E1E1E", borderBottomColor: "#383838" }, card: { backgroundColor: "#1E1E1E", borderColor: "#383838" }, text: { color: "#FFFFFF" }, subtext: { color: "#BDBDBD" }, divider: { backgroundColor: "#383838" } });
+
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: COLORS.BACKGROUND },
   header: {
@@ -1208,3 +1229,10 @@ const m = StyleSheet.create({
 });
 
 export default SettingsScreen;
+
+
+
+
+
+
+

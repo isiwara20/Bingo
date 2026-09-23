@@ -1,14 +1,6 @@
-/**
- * BinGo – React Native Entry Point
- *
- * This file is the Android/iOS entry point.
- * It registers the root App component with the native runtime.
- *
- * The component name "BinGo" must match MainActivity.kt getMainComponentName().
- */
-
-import { AppRegistry } from 'react-native';
-import App from './App';
-import { name as appName } from './app.json';
-
+const { AppRegistry } = require('react-native');
+const { installThemeStyles } = require('./src/theme/installThemeStyles');
+installThemeStyles();
+const App = require('./App').default;
+const { name: appName } = require('./app.json');
 AppRegistry.registerComponent(appName, () => App);
