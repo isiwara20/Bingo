@@ -7,9 +7,10 @@
 import React, { useState, useEffect } from "react";
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  ActivityIndicator, Alert,
+  ActivityIndicator, Alert, Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { PermissionsAndroid } from "react-native";
 import COLORS from "../constants/colors";
 import {
   scheduleCollectionReminder,
@@ -35,10 +36,6 @@ const PRESET_TIMES = [
   { label: "30 Min Before", sublabel: "30 minutes before",         hour: -1, minute: -30, relative: true },
 ];
 
-// Custom time picker options
-const HOURS   = Array.from({ length: 24 }, (_, i) => i);
-const MINUTES = [0, 15, 30, 45];
-
 const fmtTime = (h, m) => {
   const ampm = h >= 12 ? "PM" : "AM";
   const hh   = h % 12 === 0 ? 12 : h % 12;
@@ -54,13 +51,35 @@ export default function SetReminderScreen({ navigation, route }) {
   const [loading, setLoading]       = useState(true);
   const [saving, setSaving]         = useState(null);
   const [cancelling, setCancelling] = useState(null);
-  const [customHour, setCustomHour] = useState(7);
-  const [customMin, setCustomMin]   = useState(0);
-  const [showCustom, setShowCustom] = useState(false);
 
   useEffect(() => {
     loadSaved();
+    requestNotificationPermission();
   }, []);
+
+  const requestNotificationPermission = async () => {
+    if (Platform.OS === "android" && Platform.Version >= 33) {
+      try {
+        const granted = await PermissionsAndroid.request(
+          PermissionsAndroid.PERMISSIONS.POST_NOTIFICATIONS,
+          {
+            title: "Notification Permission",
+            message: "BinGo needs permission to send you waste collection reminders",
+            buttonPositive: "Allow",
+            buttonNegative: "Deny",
+          }
+        );
+        if (granted !== PermissionsAndroid.RESULTS.GRANTED) {
+          Alert.alert(
+            "Permission Required",
+            "Notification permission is required to receive waste collection reminders."
+          );
+        }
+      } catch (err) {
+        console.warn("Notification permission error:", err);
+      }
+    }
+  };
 
   const loadSaved = async () => {
     setLoading(true);
@@ -131,33 +150,6 @@ export default function SetReminderScreen({ navigation, route }) {
     } finally { setSaving(null); }
   };
 
-  const handleCustom = async () => {
-    if (isSet(customHour, customMin)) {
-      Alert.alert("Already Set", `A reminder at ${fmtTime(customHour, customMin)} is already active.`);
-      return;
-    }
-    setSaving("custom");
-    try {
-      await scheduleCollectionReminder({
-        scheduleId:    schedule._id,
-        wasteType:     schedule.wasteType,
-        area:          schedule.area,
-        collectionDay: schedule.collectionDay,
-        collectionTime: schedule.collectionTime || "06:00 AM",
-        reminderHour:  customHour,
-        reminderMinute: customMin,
-        label:         `Custom (${fmtTime(customHour, customMin)})`,
-      });
-      await loadSaved();
-      setShowCustom(false);
-      Alert.alert(
-        "✅ Reminder Set!",
-        `Custom reminder at ${fmtTime(customHour, customMin)} every ${schedule.collectionDay}.`
-      );
-    } catch (e) {
-      Alert.alert("Error", e.message || "Could not set reminder.");
-    } finally { setSaving(null); }
-  };
 
   const handleCancelAll = () => {
     if (savedReminders.length === 0) return;
@@ -285,67 +277,12 @@ export default function SetReminderScreen({ navigation, route }) {
           );
         })}
 
-        {/* Custom time */}
-        <TouchableOpacity style={S.customToggleBtn} onPress={() => setShowCustom(v => !v)}
-          accessibilityRole="button">
-          <Text style={S.customToggleTxt}>
-            {showCustom ? "▲ Hide custom time" : "⚙️ Set custom time"}
-          </Text>
-        </TouchableOpacity>
-
-        {showCustom && (
-          <View style={S.customCard}>
-            <Text style={S.customTitle}>Choose Your Time</Text>
-            {/* Hour picker */}
-            <Text style={S.pickerLabel}>Hour</Text>
-            <ScrollView horizontal showsHorizontalScrollIndicator={false}
-              contentContainerStyle={S.pickerRow}>
-              {HOURS.map(h => (
-                <TouchableOpacity key={h}
-                  style={[S.pickerChip, customHour === h && { backgroundColor: cfg.color, borderColor: cfg.color }]}
-                  onPress={() => setCustomHour(h)} accessibilityRole="button">
-                  <Text style={[S.pickerChipTxt, customHour === h && { color: "#fff", fontWeight: "700" }]}>
-                    {fmtTime(h, 0).split(":")[0] + (h < 12 ? " AM" : " PM")}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </ScrollView>
-            {/* Minute picker */}
-            <Text style={S.pickerLabel}>Minute</Text>
-            <View style={S.pickerRow}>
-              {MINUTES.map(m => (
-                <TouchableOpacity key={m}
-                  style={[S.pickerChip, customMin === m && { backgroundColor: cfg.color, borderColor: cfg.color }]}
-                  onPress={() => setCustomMin(m)} accessibilityRole="button">
-                  <Text style={[S.pickerChipTxt, customMin === m && { color: "#fff", fontWeight: "700" }]}>
-                    :{String(m).padStart(2, "0")}
-                  </Text>
-                </TouchableOpacity>
-              ))}
-            </View>
-            {/* Preview */}
-            <View style={[S.customPreview, { backgroundColor: cfg.color + "12", borderColor: cfg.color }]}>
-              <Text style={S.customPreviewIcon}>🔔</Text>
-              <Text style={[S.customPreviewTxt, { color: cfg.color }]}>
-                Remind me at {fmtTime(customHour, customMin)} every {schedule.collectionDay}
-              </Text>
-            </View>
-            <TouchableOpacity style={[S.customSaveBtn, { backgroundColor: cfg.color }, saving === "custom" && { opacity: 0.6 }]}
-              onPress={handleCustom} disabled={saving === "custom"}
-              accessibilityRole="button">
-              {saving === "custom"
-                ? <ActivityIndicator color="#fff" />
-                : <Text style={S.customSaveBtnTxt}>✅ Set Custom Reminder</Text>}
-            </TouchableOpacity>
-          </View>
-        )}
-
         {/* Note */}
         <View style={S.noteCard}>
           <Text style={S.noteIcon}>ℹ️</Text>
           <Text style={S.noteTxt}>
             Reminders repeat every {schedule.collectionDay} until you cancel them.
-            They work even when the app is closed.
+            Keep the app open for reminders to work.
           </Text>
         </View>
       </ScrollView>
@@ -387,19 +324,6 @@ const S = StyleSheet.create({
   presetTime:        { fontSize: 12, fontWeight: "600", marginTop: 3 },
   presetToggle:      { paddingHorizontal: 10, paddingVertical: 5, borderRadius: 12, borderWidth: 1.5 },
   presetToggleTxt:   { fontSize: 11, fontWeight: "800" },
-  customToggleBtn:   { alignItems: "center", paddingVertical: 12, marginBottom: 4 },
-  customToggleTxt:   { fontSize: 13, color: COLORS.PRIMARY, fontWeight: "600" },
-  customCard:        { backgroundColor: COLORS.SURFACE, borderRadius: 16, padding: 16, marginBottom: 14, elevation: 2, borderWidth: 1, borderColor: COLORS.BORDER },
-  customTitle:       { fontSize: 14, fontWeight: "800", color: COLORS.TEXT_PRIMARY, marginBottom: 12 },
-  pickerLabel:       { fontSize: 11, fontWeight: "700", color: COLORS.TEXT_SECONDARY, textTransform: "uppercase", letterSpacing: 0.8, marginBottom: 8 },
-  pickerRow:         { flexDirection: "row", gap: 8, marginBottom: 14 },
-  pickerChip:        { paddingHorizontal: 12, paddingVertical: 7, borderRadius: 20, borderWidth: 1.5, borderColor: COLORS.BORDER, backgroundColor: COLORS.BACKGROUND },
-  pickerChipTxt:     { fontSize: 12, color: COLORS.TEXT_PRIMARY, fontWeight: "500" },
-  customPreview:     { flexDirection: "row", alignItems: "center", gap: 8, padding: 12, borderRadius: 12, borderWidth: 1, marginBottom: 14 },
-  customPreviewIcon: { fontSize: 16 },
-  customPreviewTxt:  { fontSize: 13, fontWeight: "600", flex: 1 },
-  customSaveBtn:     { borderRadius: 12, paddingVertical: 13, alignItems: "center" },
-  customSaveBtnTxt:  { color: "#fff", fontSize: 14, fontWeight: "800" },
   noteCard:          { flexDirection: "row", alignItems: "flex-start", gap: 8, backgroundColor: COLORS.PRIMARY_TINT, borderRadius: 12, padding: 12, marginTop: 4 },
   noteIcon:          { fontSize: 14 },
   noteTxt:           { flex: 1, fontSize: 12, color: COLORS.TEXT_SECONDARY, lineHeight: 17 },

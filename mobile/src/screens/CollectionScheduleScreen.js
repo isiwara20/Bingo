@@ -143,6 +143,20 @@ const TodayTab = ({ schedules, onViewUpcoming, navigation }) => {
         </View>
       </View>
 
+      {/* Custom Reminders Button (Member 3 - Feature 2) */}
+      <TouchableOpacity 
+        style={S.customReminderBtn}
+        onPress={() => navigation.navigate("Profile", { screen: "CustomReminder" })}
+        accessibilityRole="button"
+        accessibilityLabel="Set custom reminders">
+        <Text style={S.customReminderIcon}>⏰</Text>
+        <View style={S.customReminderContent}>
+          <Text style={S.customReminderTitle}>Custom Reminders</Text>
+          <Text style={S.customReminderSub}>Set reminders for any day or time</Text>
+        </View>
+        <Text style={S.customReminderArrow}>→</Text>
+      </TouchableOpacity>
+
       {/* Week strip */}
       <View style={S.weekStrip}>
         {weekDays.map(({ d, dn, cols, isToday }) => (
@@ -707,6 +721,13 @@ const S = StyleSheet.create({
   greetText:        { fontSize: 18, fontWeight: "800", color: "#fff" },
   greetSub:         { fontSize: 12, color: COLORS.PRIMARY_TINT, marginTop: 4 },
   greetIcon:        { backgroundColor: "rgba(255,255,255,0.15)", borderRadius: 12, padding: 8 },
+  // Custom Reminders Button (Member 3 - Feature 2)
+  customReminderBtn: { flexDirection: "row", alignItems: "center", backgroundColor: COLORS.SURFACE, borderRadius: 14, padding: 14, marginBottom: 14, borderWidth: 1, borderColor: COLORS.BORDER, elevation: 1 },
+  customReminderIcon: { fontSize: 24 },
+  customReminderContent: { flex: 1, marginLeft: 12 },
+  customReminderTitle: { fontSize: 15, fontWeight: "700", color: COLORS.TEXT_PRIMARY },
+  customReminderSub: { fontSize: 12, color: COLORS.TEXT_SECONDARY, marginTop: 2 },
+  customReminderArrow: { fontSize: 18, color: COLORS.TEXT_DISABLED, fontWeight: "700" },
   // Week strip
   weekStrip:        { flexDirection: "row", backgroundColor: COLORS.SURFACE, borderRadius: 14, padding: 10, marginBottom: 16, borderWidth: 1, borderColor: COLORS.BORDER, elevation: 1 },
   weekCell:         { flex: 1, alignItems: "center", paddingVertical: 6, borderRadius: 10 },

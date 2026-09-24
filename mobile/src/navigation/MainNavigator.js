@@ -37,6 +37,7 @@ import ScheduleFormScreen          from "../screens/ScheduleFormScreen";
 import CollectionDashboardScreen   from "../screens/CollectionDashboardScreen";
 import AlertManagementScreen       from "../screens/AlertManagementScreen";
 import SetReminderScreen           from "../screens/SetReminderScreen";
+import CustomReminderScreen        from "../screens/CustomReminderScreen";
 import RecyclingGuideScreen        from "../screens/RecyclingGuideScreen";
 import RecyclingCategoryScreen     from "../screens/RecyclingCategoryScreen";
 import WasteScanScreen             from "../screens/WasteScanScreen";
@@ -145,6 +146,7 @@ const ProfileStack = () => {
       <Stack.Screen name="Schedule"      component={isAuthority ? ScheduleManagementScreen : CollectionScheduleScreen} />
       <Stack.Screen name="ScheduleForm"  component={ScheduleFormScreen} />
       <Stack.Screen name="SetReminder"   component={SetReminderScreen} />
+      <Stack.Screen name="CustomReminder" component={CustomReminderScreen} />
       <Stack.Screen name="CollectionDashboard" component={isAuthority ? AlertManagementScreen : CollectionDashboardScreen} />
       <Stack.Screen name="Recycling"     component={RecyclingGuideScreen} />
       <Stack.Screen name="RecyclingCategory" component={RecyclingCategoryScreen} />

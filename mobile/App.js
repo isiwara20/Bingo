@@ -5,7 +5,7 @@
  * Feature code lives in src/ – not in this file.
  */
 
-import React from "react";
+import React, { useEffect } from "react";
 import { StatusBar } from "react-native";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
@@ -13,8 +13,13 @@ import { NavigationContainer } from "@react-navigation/native";
 
 import RootNavigator from "./src/navigation/RootNavigator";
 import { AuthProvider } from "./src/context/AuthContext";
+import { initializeNotifications } from "./src/services/localReminderService";
 
-const App = () => {
+export default function App() {
+  useEffect(() => {
+    initializeNotifications();
+  }, []);
+
   return (
     <GestureHandlerRootView style={{ flex: 1 }}>
       <SafeAreaProvider>
@@ -28,5 +33,3 @@ const App = () => {
     </GestureHandlerRootView>
   );
 };
-
-export default App;
