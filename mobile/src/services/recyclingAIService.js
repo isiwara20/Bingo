@@ -58,7 +58,9 @@ const isRateLimitError = (error) => {
   return errorMsg.includes('quota') || 
          errorMsg.includes('rate limit') || 
          errorMsg.includes('429') ||
-         errorMsg.includes('resource exhausted');
+         errorMsg.includes('resource exhausted') ||
+         errorMsg.includes('high demand') ||
+         errorMsg.includes('too many requests');
 };
 
 /**
