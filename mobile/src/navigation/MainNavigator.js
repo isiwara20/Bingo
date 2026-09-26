@@ -40,35 +40,21 @@ import RecyclingGuideScreen        from "../screens/RecyclingGuideScreen";
 import RecyclingCategoryScreen     from "../screens/RecyclingCategoryScreen";
 import WasteScanScreen             from "../screens/WasteScanScreen";
 import CommunityScreen             from "../screens/CommunityScreen";
+import CommunityDetailsScreen      from "../screens/CommunityDetailsScreen";
+import CommunityCreateScreen       from "../screens/CommunityCreateScreen";
+import CommunityMineScreen         from "../screens/CommunityMineScreen";
 import NotificationsScreen         from "../screens/NotificationsScreen";
+import NotificationSettingsScreen  from "../screens/NotificationSettingsScreen";
 import RewardsScreen               from "../screens/RewardsScreen";
 import ProfileScreen               from "../screens/ProfileScreen";
 import SettingsScreen              from "../screens/SettingsScreen";
 import PaymentScreen               from "../screens/PaymentScreen";
 // Role dashboards
-import ResidentDashboard        from "../screens/ResidentDashboard";
-import CommunityLeaderDashboard from "../screens/CommunityLeaderDashboard";
-import WasteAuthorityDashboard  from "../screens/WasteAuthorityDashboard";
-
-// Screens
-import ReportWasteScreen        from "../screens/ReportWasteScreen";
-import ReportReviewScreen       from "../screens/ReportReviewScreen";
-import ReportDetailsScreen      from "../screens/ReportDetailsScreen";
-import ReportStatusScreen       from "../screens/ReportStatusScreen";
-import WasteMapScreen           from "../screens/WasteMapScreen";
-import CollectionScheduleScreen from "../screens/CollectionScheduleScreen";
-import RecyclingGuideScreen     from "../screens/RecyclingGuideScreen";
-import CommunityScreen          from "../screens/CommunityScreen";
-import CommunityDetailsScreen   from "../screens/CommunityDetailsScreen";
-import CommunityCreateScreen    from "../screens/CommunityCreateScreen";
-import CommunityMineScreen      from "../screens/CommunityMineScreen";
-import NotificationsScreen      from "../screens/NotificationsScreen";
-import NotificationSettingsScreen from "../screens/NotificationSettingsScreen";
-import RewardsScreen            from "../screens/RewardsScreen";
-import ProfileScreen            from "../screens/ProfileScreen";
-import SettingsScreen           from "../screens/SettingsScreen";
-import PaymentScreen            from "../screens/PaymentScreen";
-import ResidentProfileScreen    from "../screens/profiles/ResidentProfileScreen";
+import ResidentDashboard           from "../screens/ResidentDashboard";
+import CommunityLeaderDashboard   from "../screens/CommunityLeaderDashboard";
+import WasteAuthorityDashboard     from "../screens/WasteAuthorityDashboard";
+// Role profiles
+import ResidentProfileScreen       from "../screens/profiles/ResidentProfileScreen";
 import CommunityLeaderProfileScreen from "../screens/profiles/CommunityLeaderProfileScreen";
 import WasteAuthorityProfileScreen  from "../screens/profiles/WasteAuthorityProfileScreen";
 import ResidentVerificationScreen   from "../screens/profiles/ResidentVerificationScreen";
@@ -105,6 +91,9 @@ const makeHomeStack = (role) => {
       <Stack.Screen name="Rewards"       component={RewardsScreen} />
       <Stack.Screen name="Payment"       component={PaymentScreen} />
       <Stack.Screen name="Settings"      component={SettingsScreen} />
+      <Stack.Screen name="CollectionDashboard" component={CollectionDashboardScreen} />
+      <Stack.Screen name="AlertManagement" component={AlertManagementScreen} />
+      <Stack.Screen name="SetReminder"   component={SetReminderScreen} />
     </Stack.Navigator>
   );
   return HomeStack;
@@ -135,6 +124,21 @@ const MapStack = () => (
   </Stack.Navigator>
 );
 
+const ScheduleStack = () => (
+  <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Screen name="ScheduleMain" component={CollectionScheduleScreen} />
+    <Stack.Screen name="CustomReminder" component={CustomReminderScreen} />
+  </Stack.Navigator>
+);
+
+const RecyclingStack = () => (
+  <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Screen name="RecyclingMain" component={RecyclingGuideScreen} />
+    <Stack.Screen name="RecyclingCategory" component={RecyclingCategoryScreen} />
+    <Stack.Screen name="WasteScan" component={WasteScanScreen} />
+  </Stack.Navigator>
+);
+
 // ── Role → Profile screen ─────────────────────────────────────────────────────
 const ROLE_PROFILES = {
   resident:         ResidentProfileScreen,
@@ -144,22 +148,21 @@ const ROLE_PROFILES = {
 
 const makeProfileStack = (role) => {
   const ProfileMain = ROLE_PROFILES[role] || ProfileScreen;
+  const isAuthority = role === "waste_authority";
   const ProfileStack = () => (
-    <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="ProfileMain"   component={ProfileScreen} />
+    <Stack.Navigator screenOptions={{ headerShown: false }} initialRouteName="ProfileMain">
+      <Stack.Screen name="ProfileMain"   component={ProfileMain} />
       <Stack.Screen name="Settings"      component={SettingsScreen} />
       <Stack.Screen name="Schedule"      component={isAuthority ? ScheduleManagementScreen : CollectionScheduleScreen} />
       <Stack.Screen name="ScheduleForm"  component={ScheduleFormScreen} />
       <Stack.Screen name="SetReminder"   component={SetReminderScreen} />
-      <Stack.Screen name="CustomReminder" component={CustomReminderScreen} />
       <Stack.Screen name="CollectionDashboard" component={isAuthority ? AlertManagementScreen : CollectionDashboardScreen} />
+      <Stack.Screen name="AlertManagement" component={AlertManagementScreen} />
       <Stack.Screen name="Recycling"     component={RecyclingGuideScreen} />
       <Stack.Screen name="RecyclingCategory" component={RecyclingCategoryScreen} />
       <Stack.Screen name="WasteScan"     component={WasteScanScreen} />
       <Stack.Screen name="Community"     component={CommunityScreen} />
       <Stack.Screen name="Rewards"       component={RewardsScreen} />
-      <Stack.Screen name="ProfileMain"           component={ProfileMain} />
-      <Stack.Screen name="Settings"              component={SettingsScreen} />
       <Stack.Screen name="ResidentVerification"  component={ResidentVerificationScreen} />
     </Stack.Navigator>
   );
@@ -208,10 +211,10 @@ const MainNavigator = () => {
       <Tab.Screen name="Home"      component={HomeStack}               options={{ tabBarLabel: text.home }} />
       <Tab.Screen name="Report"    component={ReportStack}             options={{ tabBarLabel: text.report }} />
       <Tab.Screen name="Map"       component={MapStack}                options={{ tabBarLabel: text.map }} />
-      <Tab.Screen name="Schedule"  component={CollectionScheduleScreen} options={{ tabBarLabel: text.schedule }} />
+      <Tab.Screen name="Schedule"  component={ScheduleStack}           options={{ tabBarLabel: text.schedule }} />
       <Tab.Screen name="Community" component={CommunityScreen}         options={{ tabBarLabel: text.community }} />
-      <Tab.Screen name="Recycling" component={RecyclingGuideScreen}    options={{ tabBarLabel: text.recycle }} />
-      <Tab.Screen name="Profile"   component={ProfileStack}            options={{ tabBarLabel: text.profile }} />
+      <Tab.Screen name="Recycling" component={RecyclingStack}          options={{ tabBarLabel: text.recycle }} />
+      <Tab.Screen name="Profile" component={ProfileStack} options={{ tabBarLabel: text.profile, unmountOnBlur: true }} />
     </Tab.Navigator>
   );
 };

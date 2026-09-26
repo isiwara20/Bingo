@@ -23,6 +23,7 @@ const QUICK_ACTIONS = [
   { id: "report",   label: "Report Waste",   emoji: "🚨", screen: "Report",   desc: "Report illegal dumping",   color: COLORS.ERROR },
   { id: "map",      label: "Waste Map",       emoji: "🗺️", screen: "Map",      desc: "View waste locations",     color: COLORS.INFO },
   { id: "schedule", label: "Schedule",        emoji: "📅", screen: "Schedule", desc: "Collection schedule",       color: COLORS.SUCCESS },
+  { id: "alerts",   label: "Collection Alerts", emoji: "🔔", screen: "CollectionDashboard", desc: "View collection alerts", color: COLORS.ACCENT },
   { id: "recycle",  label: "Recycling",       emoji: "♻️", screen: "Recycling",desc: "Recycling guide",          color: COLORS.PRIMARY },
 ];
 

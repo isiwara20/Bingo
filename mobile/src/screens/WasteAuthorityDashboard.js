@@ -157,6 +157,7 @@ const WasteAuthorityDashboard = ({ navigation }) => {
             { emoji: "🗺️", label: "Waste Map",        desc: "View all reported locations",  color: COLORS.INFO,    screen: "Map" },
             { emoji: "📅", label: "Collection Schedule", desc: "Manage pickup routes",        color: "#00695C",      screen: "Schedule" },
             { emoji: "👥", label: "Community Board",   desc: "Communicate with residents",   color: COLORS.PRIMARY, screen: "Community" },
+            { emoji: "�", label: "Collection Alerts", desc: "Manage route & weather alerts", color: COLORS.ACCENT,   screen: "AlertManagement" },
             { emoji: "♻️", label: "Recycling Guide",   desc: "Update recycling information", color: COLORS.SUCCESS, screen: "Recycling" },
             { emoji: "⭐", label: "Rewards",           desc: `${points ?? user?.rewardPoints ?? 0} points earned`, color: COLORS.ACCENT, screen: "Rewards" },
           ].map(a => (

@@ -144,9 +144,9 @@ const TodayTab = ({ schedules, onViewUpcoming, navigation }) => {
       </View>
 
       {/* Custom Reminders Button (Member 3 - Feature 2) */}
-      <TouchableOpacity 
+      <TouchableOpacity
         style={S.customReminderBtn}
-        onPress={() => navigation.navigate("Profile", { screen: "CustomReminder" })}
+        onPress={() => navigation.navigate("CustomReminder")}
         accessibilityRole="button"
         accessibilityLabel="Set custom reminders">
         <Text style={S.customReminderIcon}>⏰</Text>
