@@ -1,0 +1,17 @@
+const router = require("express").Router();
+const { authenticateUser } = require("../middleware/authMiddleware");
+const { handleValidationErrors } = require("../middleware/validationMiddleware");
+const c = require("../controllers/goalController");
+const v = require("../validators/goalValidators");
+router.use(authenticateUser);
+router.get("/options", c.options);
+router.get("/summary", c.summary);
+router.get("/", v.list, handleValidationErrors, c.list);
+router.post("/", v.create, handleValidationErrors, c.create);
+router.get("/:id", v.id, handleValidationErrors, c.details);
+router.get("/:id/history", [...v.id, ...v.pagination], handleValidationErrors, c.history);
+router.patch("/:id", [...v.id, ...v.edit], handleValidationErrors, c.edit);
+router.post("/:id/progress", v.progress, handleValidationErrors, c.progress);
+router.post("/:id/cancel", v.id, handleValidationErrors, c.cancel);
+router.delete("/:id", v.id, handleValidationErrors, c.remove);
+module.exports = router;

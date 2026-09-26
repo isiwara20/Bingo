@@ -38,7 +38,7 @@ api.interceptors.request.use(
     }
 
     if (__DEV__) {
-      console.log(`[API] ${config.method?.toUpperCase()} ${config.url}`);
+      console.log(`[API] ${config.method?.toUpperCase()} ${config.baseURL}${config.url}`);
     }
 
     return config;
@@ -51,14 +51,13 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (__DEV__) {
-      console.error("[API Error]", error.response?.status, error.response?.data);
+      console.error("[API Error]", error.code, error.message, error.response?.status, error.response?.data);
     }
 
     // Network error (no response from server)
     if (!error.response) {
       return Promise.reject({
-        message:
-          "Network error. Please check your connection and ensure the backend is running.",
+        message: `Network error (${error.code || "unknown"}): ${error.message}. Check your connection.`,
         isNetworkError: true,
       });
     }

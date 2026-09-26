@@ -1,30 +1,35 @@
 /**
  * BinGo – User Routes
- *
- * GET    /api/v1/users          (admin)
- * GET    /api/v1/users/:id      (admin or self)
- * PUT    /api/v1/users/:id      (self)
- * DELETE /api/v1/users/:id      (admin)
- * PATCH  /api/v1/users/:id/role (admin)
  */
 
 const express = require("express");
-const router = express.Router();
-
-const userController = require("../controllers/userController");
+const router  = express.Router();
 const { authenticateUser, authorizeRoles } = require("../middleware/authMiddleware");
+const {
+  getMe,
+  updateMe,
+  changePassword,
+  deleteAccount,
+  submitVerification,
+  reviewVerification,
+} = require("../controllers/userController");
 
-// All user routes require authentication
-router.use(authenticateUser);
+router.get("/me",                         authenticateUser, getMe);
+router.put("/me",                         authenticateUser, updateMe);
+router.delete("/me",                      authenticateUser, deleteAccount);
+router.put("/change-password",            authenticateUser, changePassword);
+router.post("/verify",                    authenticateUser, authorizeRoles("resident"), submitVerification);
+router.put("/:id/verification",           authenticateUser, authorizeRoles("admin"), reviewVerification);
 
-router.get("/", authorizeRoles("admin"), userController.getAllUsers);
-
-router.get("/:id", userController.getUserById);
-
-router.put("/:id", userController.updateUser);
-
-router.delete("/:id", authorizeRoles("admin"), userController.deleteUser);
-
-router.patch("/:id/role", authorizeRoles("admin"), userController.updateUserRole);
+// Admin: list pending verifications
+router.get("/pending-verifications",      authenticateUser, authorizeRoles("admin"), async (req, res) => {
+  const User = require("../models/User");
+  const { sendSuccess } = require("../utils/apiResponse");
+  const users = await User.find({
+    role: "resident",
+    verificationStatus: "pending",
+  }).select("name email whatsappNumber address residenceImage faceImage verificationLocation createdAt");
+  sendSuccess(res, 200, "Pending verifications retrieved.", users);
+});
 
 module.exports = router;

@@ -1,28 +1,26 @@
 /**
  * BinGo – Main Navigator
  *
- * Bottom tab navigation matching the high-fidelity wireframe design:
- *   - White nav bar background
- *   - Dark green active tab icon + label
- *   - Grey inactive icons
- *   - Centre FAB (dark green circle with + / report icon) for quick reporting
+ * Bottom tab navigation for all non-admin authenticated users.
+ * Home tab renders the correct dashboard per role:
+ *   resident          → ResidentDashboard
+ *   community_leader  → CommunityLeaderDashboard
+ *   waste_authority   → WasteAuthorityDashboard
  *
- * Tabs: Home | Map | [FAB] | Alerts | Profile
+ * Uses MaterialCommunityIcons for all tab icons.
+ * useSafeAreaInsets ensures the tab bar clears the phone's gesture/nav bar.
  */
 
 import React from "react";
-import {
-  View,
-  Text,
-  TouchableOpacity,
-  StyleSheet,
-  Platform,
-} from "react-native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 
-import COLORS from "../constants/colors";
 import { useAuth } from "../context/AuthContext";
+import { useTheme } from "../context/ThemeContext";
+import { getUiText } from "../constants/translations";
+import COLORS from "../constants/colors";
 
 // ── Screens ───────────────────────────────────────────────────────────────
 import HomeScreen                  from "../screens/HomeScreen";
@@ -47,71 +45,69 @@ import RewardsScreen               from "../screens/RewardsScreen";
 import ProfileScreen               from "../screens/ProfileScreen";
 import SettingsScreen              from "../screens/SettingsScreen";
 import PaymentScreen               from "../screens/PaymentScreen";
+// Role dashboards
+import ResidentDashboard        from "../screens/ResidentDashboard";
+import CommunityLeaderDashboard from "../screens/CommunityLeaderDashboard";
+import WasteAuthorityDashboard  from "../screens/WasteAuthorityDashboard";
+
+// Screens
+import ReportWasteScreen        from "../screens/ReportWasteScreen";
+import ReportReviewScreen       from "../screens/ReportReviewScreen";
+import ReportDetailsScreen      from "../screens/ReportDetailsScreen";
+import ReportStatusScreen       from "../screens/ReportStatusScreen";
+import WasteMapScreen           from "../screens/WasteMapScreen";
+import CollectionScheduleScreen from "../screens/CollectionScheduleScreen";
+import RecyclingGuideScreen     from "../screens/RecyclingGuideScreen";
+import CommunityScreen          from "../screens/CommunityScreen";
+import CommunityDetailsScreen   from "../screens/CommunityDetailsScreen";
+import CommunityCreateScreen    from "../screens/CommunityCreateScreen";
+import CommunityMineScreen      from "../screens/CommunityMineScreen";
+import NotificationsScreen      from "../screens/NotificationsScreen";
+import NotificationSettingsScreen from "../screens/NotificationSettingsScreen";
+import RewardsScreen            from "../screens/RewardsScreen";
+import ProfileScreen            from "../screens/ProfileScreen";
+import SettingsScreen           from "../screens/SettingsScreen";
+import PaymentScreen            from "../screens/PaymentScreen";
+import ResidentProfileScreen    from "../screens/profiles/ResidentProfileScreen";
+import CommunityLeaderProfileScreen from "../screens/profiles/CommunityLeaderProfileScreen";
+import WasteAuthorityProfileScreen  from "../screens/profiles/WasteAuthorityProfileScreen";
+import ResidentVerificationScreen   from "../screens/profiles/ResidentVerificationScreen";
 
 const Tab   = createBottomTabNavigator();
 const Stack = createNativeStackNavigator();
 
-// ── SVG-free icon set using Unicode / emoji ───────────────────────────────
-// Wireframe tabs: Home | Map | [FAB centre] | Alerts | Profile
+// ── Role → Dashboard ──────────────────────────────────────────────────────────
+const ROLE_DASHBOARDS = {
+  resident:         ResidentDashboard,
+  community_leader: CommunityLeaderDashboard,
+  waste_authority:  WasteAuthorityDashboard,
+};
+
+// ── Tab icon names (MaterialCommunityIcons) ───────────────────────────────────
 const TAB_ICONS = {
-  Home:    { active: "⌂",  inactive: "⌂"  },
-  Map:     { active: "▦",  inactive: "▦"  },
-  Alerts:  { active: "🔔", inactive: "🔔" },
-  Profile: { active: "👤", inactive: "👤" },
+  Home:      { active: "home",             inactive: "home-outline" },
+  Report:    { active: "clipboard-edit",   inactive: "clipboard-edit-outline" },
+  Map:       { active: "map",              inactive: "map-outline" },
+  Schedule:  { active: "calendar-check",  inactive: "calendar-check-outline" },
+  Community: { active: "account-group",   inactive: "account-group-outline" },
+  Recycling: { active: "recycle",         inactive: "recycle" },
+  Profile:   { active: "account-circle",  inactive: "account-circle-outline" },
 };
 
-// ── Tab icon component ────────────────────────────────────────────────────
-const TabIcon = ({ name, focused }) => {
-  const icons = {
-    Home:    focused ? "🏠" : "🏠",
-    Map:     focused ? "🗺" : "🗺",
-    Alerts:  focused ? "🔔" : "🔔",
-    Profile: focused ? "👤" : "👤",
-  };
-  return (
-    <Text style={{ fontSize: 20, opacity: focused ? 1 : 0.45 }}>
-      {icons[name] || "●"}
-    </Text>
-  );
-};
-
-// ── Centre FAB – floating report button ───────────────────────────────────
-const ReportFAB = ({ onPress }) => (
-  <TouchableOpacity
-    style={styles.fab}
-    onPress={onPress}
-    activeOpacity={0.85}
-    accessibilityRole="button"
-    accessibilityLabel="Report illegal dumping"
-  >
-    <Text style={styles.fabIcon}>＋</Text>
-  </TouchableOpacity>
-);
-
-// ── Stack navigators ──────────────────────────────────────────────────────
-
-const HomeStack = () => {
-  const { user } = useAuth();
-  const isAuthority = ["admin", "waste_authority"].includes(user?.role);
-  return (
+// ── Stacks ────────────────────────────────────────────────────────────────────
+const makeHomeStack = (role) => {
+  const Dashboard = ROLE_DASHBOARDS[role] || ResidentDashboard;
+  const HomeStack = () => (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
-      <Stack.Screen name="HomeMain"      component={HomeScreen} />
+      <Stack.Screen name="HomeMain"      component={Dashboard} />
       <Stack.Screen name="Notifications" component={NotificationsScreen} />
+      <Stack.Screen name="NotificationSettings" component={NotificationSettingsScreen} />
       <Stack.Screen name="Rewards"       component={RewardsScreen} />
       <Stack.Screen name="Payment"       component={PaymentScreen} />
       <Stack.Screen name="Settings"      component={SettingsScreen} />
-      {/* Member 3 – Feature 1: role-based schedule screen */}
-      <Stack.Screen name="Schedule"      component={isAuthority ? ScheduleManagementScreen : CollectionScheduleScreen} />
-      <Stack.Screen name="ScheduleForm"  component={ScheduleFormScreen} />
-      {/* Member 3 – Feature 2: set reminder (resident) / alert management (authority) */}
-      <Stack.Screen name="SetReminder"   component={SetReminderScreen} />
-      <Stack.Screen name="CollectionDashboard" component={isAuthority ? AlertManagementScreen : CollectionDashboardScreen} />
-      <Stack.Screen name="Recycling"          component={RecyclingGuideScreen} />
-      <Stack.Screen name="RecyclingCategory"  component={RecyclingCategoryScreen} />
-      {/* Member 3 – Feature 4: AI Waste Assistant */}
-      <Stack.Screen name="WasteScan"          component={WasteScanScreen} />
     </Stack.Navigator>
   );
+  return HomeStack;
 };
 
 const ReportStack = () => (
@@ -123,6 +119,15 @@ const ReportStack = () => (
   </Stack.Navigator>
 );
 
+const CommunityStack = () => (
+  <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Screen name="CommunityMain"    component={CommunityScreen} />
+    <Stack.Screen name="CommunityDetails" component={CommunityDetailsScreen} />
+    <Stack.Screen name="CommunityCreate"  component={CommunityCreateScreen} />
+    <Stack.Screen name="CommunityMine"    component={CommunityMineScreen} />
+  </Stack.Navigator>
+);
+
 const MapStack = () => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>
     <Stack.Screen name="WasteMap"      component={WasteMapScreen} />
@@ -130,16 +135,16 @@ const MapStack = () => (
   </Stack.Navigator>
 );
 
-const AlertsStack = () => (
-  <Stack.Navigator screenOptions={{ headerShown: false }}>
-    <Stack.Screen name="AlertsMain"    component={NotificationsScreen} />
-  </Stack.Navigator>
-);
+// ── Role → Profile screen ─────────────────────────────────────────────────────
+const ROLE_PROFILES = {
+  resident:         ResidentProfileScreen,
+  community_leader: CommunityLeaderProfileScreen,
+  waste_authority:  WasteAuthorityProfileScreen,
+};
 
-const ProfileStack = () => {
-  const { user } = useAuth();
-  const isAuthority = ["admin", "waste_authority"].includes(user?.role);
-  return (
+const makeProfileStack = (role) => {
+  const ProfileMain = ROLE_PROFILES[role] || ProfileScreen;
+  const ProfileStack = () => (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
       <Stack.Screen name="ProfileMain"   component={ProfileScreen} />
       <Stack.Screen name="Settings"      component={SettingsScreen} />
@@ -153,115 +158,64 @@ const ProfileStack = () => {
       <Stack.Screen name="WasteScan"     component={WasteScanScreen} />
       <Stack.Screen name="Community"     component={CommunityScreen} />
       <Stack.Screen name="Rewards"       component={RewardsScreen} />
+      <Stack.Screen name="ProfileMain"           component={ProfileMain} />
+      <Stack.Screen name="Settings"              component={SettingsScreen} />
+      <Stack.Screen name="ResidentVerification"  component={ResidentVerificationScreen} />
     </Stack.Navigator>
   );
+  return ProfileStack;
 };
 
-// ── Main Tab Navigator ────────────────────────────────────────────────────
+// ── Main Tab Navigator ────────────────────────────────────────────────────────
 const MainNavigator = () => {
+  const { user } = useAuth();
+  const { darkMode, language } = useTheme();
+  const text = getUiText(language);
+  const insets = useSafeAreaInsets();
+  const role = user?.role || "resident";
+  const HomeStack    = React.useMemo(() => makeHomeStack(role), [role]);
+  const ProfileStack = React.useMemo(() => makeProfileStack(role), [role]);
+
   return (
     <Tab.Navigator
       screenOptions={({ route }) => ({
         headerShown: false,
-        tabBarActiveTintColor:   COLORS.NAV_ACTIVE,
-        tabBarInactiveTintColor: COLORS.NAV_INACTIVE,
-        tabBarStyle: styles.tabBar,
-        tabBarLabelStyle: styles.tabLabel,
-        tabBarIcon: ({ focused }) => (
-          <TabIcon name={route.name} focused={focused} />
-        ),
+        tabBarActiveTintColor:   COLORS.PRIMARY,
+        tabBarInactiveTintColor: darkMode ? "#BDBDBD" : COLORS.TEXT_SECONDARY,
+        tabBarStyle: {
+          backgroundColor: darkMode ? "#1E1E1E" : COLORS.SURFACE,
+          borderTopColor:  darkMode ? "#383838" : COLORS.BORDER,
+          borderTopWidth:  1,
+          // Respect phone's navigation bar height
+          height: 56 + insets.bottom,
+          paddingBottom: insets.bottom + 4,
+          paddingTop: 6,
+          elevation: 8,
+        },
+        tabBarLabelStyle: {
+          fontSize: 10,
+          fontWeight: "600",
+          marginBottom: 2,
+        },
+        tabBarIcon: ({ focused, color }) => {
+          const iconName = focused
+            ? TAB_ICONS[route.name]?.active
+            : TAB_ICONS[route.name]?.inactive;
+          return <Icon name={iconName || "circle-outline"} size={24} color={color} />;
+        },
       })}
     >
-      {/* Tab 1 – Home */}
-      <Tab.Screen
-        name="Home"
-        component={HomeStack}
-        options={{ tabBarLabel: "Home" }}
-      />
-
-      {/* Tab 2 – Map */}
-      <Tab.Screen
-        name="Map"
-        component={MapStack}
-        options={{ tabBarLabel: "Map" }}
-      />
-
-      {/* Tab 3 – Centre FAB (Report) – hidden label + custom button */}
-      <Tab.Screen
-        name="Report"
-        component={ReportStack}
-        options={{
-          tabBarLabel: () => null,
-          tabBarIcon: () => null,
-          tabBarButton: (props) => (
-            <ReportFAB onPress={props.onPress} />
-          ),
-        }}
-      />
-
-      {/* Tab 4 – Alerts */}
-      <Tab.Screen
-        name="Alerts"
-        component={AlertsStack}
-        options={{ tabBarLabel: "Alerts" }}
-      />
-
-      {/* Tab 5 – Profile */}
-      <Tab.Screen
-        name="Profile"
-        component={ProfileStack}
-        options={{ tabBarLabel: "Profile" }}
-      />
+      <Tab.Screen name="Home"      component={HomeStack}               options={{ tabBarLabel: text.home }} />
+      <Tab.Screen name="Report"    component={ReportStack}             options={{ tabBarLabel: text.report }} />
+      <Tab.Screen name="Map"       component={MapStack}                options={{ tabBarLabel: text.map }} />
+      <Tab.Screen name="Schedule"  component={CollectionScheduleScreen} options={{ tabBarLabel: text.schedule }} />
+      <Tab.Screen name="Community" component={CommunityScreen}         options={{ tabBarLabel: text.community }} />
+      <Tab.Screen name="Recycling" component={RecyclingGuideScreen}    options={{ tabBarLabel: text.recycle }} />
+      <Tab.Screen name="Profile"   component={ProfileStack}            options={{ tabBarLabel: text.profile }} />
     </Tab.Navigator>
   );
 };
 
-// ── Styles ────────────────────────────────────────────────────────────────
-const styles = StyleSheet.create({
-  // Bottom nav bar
-  tabBar: {
-    backgroundColor: COLORS.NAV_BG,           // white
-    borderTopWidth: 1,
-    borderTopColor: COLORS.DIVIDER,
-    height: Platform.OS === "android" ? 64 : 80,
-    paddingBottom: Platform.OS === "android" ? 8 : 20,
-    paddingTop: 6,
-    // Subtle shadow matching wireframe
-    shadowColor: COLORS.SHADOW,
-    shadowOffset: { width: 0, height: -2 },
-    shadowOpacity: 0.06,
-    shadowRadius: 8,
-    elevation: 12,
-  },
-  tabLabel: {
-    fontSize: 11,
-    fontWeight: "600",
-    marginTop: 2,
-  },
-
-  // Centre FAB
-  fab: {
-    width: 56,
-    height: 56,
-    borderRadius: 28,
-    backgroundColor: COLORS.NAV_FAB,          // dark green
-    justifyContent: "center",
-    alignItems: "center",
-    // Lift it above the nav bar
-    marginBottom: Platform.OS === "android" ? 18 : 28,
-    // Shadow
-    shadowColor: COLORS.SHADOW,
-    shadowOffset: { width: 0, height: 4 },
-    shadowOpacity: 0.3,
-    shadowRadius: 6,
-    elevation: 8,
-  },
-  fabIcon: {
-    fontSize: 28,
-    color: COLORS.NAV_FAB_ICON,               // white
-    lineHeight: 32,
-    includeFontPadding: false,
-  },
-});
-
 export default MainNavigator;
+
+

@@ -1,8 +1,8 @@
 /**
  * BinGo – Auth Service (Mobile)
  *
- * Wraps authentication API calls.
- * Import this in screens – never call api directly from screens.
+ * Wraps all authentication-related API calls.
+ * Import this in screens — never call api directly from screens.
  */
 
 import api from "../api/apiClient";
@@ -10,7 +10,16 @@ import api from "../api/apiClient";
 /**
  * Register a new user.
  *
- * @param {{ name, email, password, phone }} userData
+ * @param {{
+ *   name: string,
+ *   email: string,
+ *   password: string,
+ *   phone?: string,
+ *   role?: string,
+ *   address?: string,
+ *   communityName?: string,
+ *   location?: { latitude: number, longitude: number }
+ * }} userData
  * @returns {{ user, token }}
  */
 export const register = async (userData) => {
@@ -20,8 +29,9 @@ export const register = async (userData) => {
 
 /**
  * Log in with email and password.
+ * Works for all roles including admin.
  *
- * @param {{ email, password }} credentials
+ * @param {{ email: string, password: string }} credentials
  * @returns {{ user, token }}
  */
 export const login = async (credentials) => {
@@ -30,7 +40,7 @@ export const login = async (credentials) => {
 };
 
 /**
- * Log out – notifies the backend (stateless, but good practice).
+ * Log out — notifies the backend to invalidate session if applicable.
  */
 export const logout = async () => {
   await api.post("/auth/logout");
@@ -38,10 +48,39 @@ export const logout = async () => {
 
 /**
  * Get the authenticated user's profile.
- *
  * @returns {object} user
  */
 export const getMe = async () => {
   const response = await api.get("/auth/me");
   return response.data.data;
+};
+
+/**
+ * Send a 6-digit OTP to the given WhatsApp number via WAClient.
+ * @param {string} whatsappNumber
+ */
+export const sendOtp = async (whatsappNumber) => {
+  await api.post("/auth/send-otp", { whatsappNumber });
+};
+
+/**
+ * Verify the OTP entered by the user.
+ * @param {string} whatsappNumber
+ * @param {string} otp
+ */
+export const verifyOtp = async (whatsappNumber, otp) => {
+  const response = await api.post("/auth/verify-otp", { whatsappNumber, otp });
+  return response.data.data;
+};
+
+export const requestPasswordReset = async (email) => {
+  const response = await api.post("/auth/password-reset/request", { email });
+  return response.data;
+};
+export const verifyPasswordReset = async (email, otp) => {
+  const response = await api.post("/auth/password-reset/verify", { email, otp });
+  return response.data.data;
+};
+export const completePasswordReset = async (resetToken, password) => {
+  await api.post("/auth/password-reset/complete", { resetToken, password });
 };

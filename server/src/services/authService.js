@@ -3,8 +3,6 @@
  *
  * Contains business logic for user registration and login.
  * Controllers call service methods; services interact with models.
- *
- * This separation keeps controllers thin and services testable.
  */
 
 const jwt = require("jsonwebtoken");
@@ -14,12 +12,11 @@ const { HTTP_STATUS, ROLES } = require("../config/constants");
 
 /**
  * Generate a signed JWT for a given user ID.
- *
- * @param {string} userId - MongoDB ObjectId as string
- * @returns {string} Signed JWT
+ * @param {string} userId
+ * @returns {string}
  */
-const generateToken = (userId) => {
-  return jwt.sign({ id: userId }, process.env.JWT_SECRET, {
+const generateToken = (userId, sessionVersion = 0) => {
+  return jwt.sign({ id: userId, sessionVersion }, process.env.JWT_SECRET, {
     expiresIn: process.env.JWT_EXPIRES_IN || "7d",
   });
 };
@@ -27,11 +24,32 @@ const generateToken = (userId) => {
 /**
  * Register a new user.
  *
- * @param {object} userData - { name, email, password, phone }
+ * Accepts role: resident | community_leader | waste_authority
+ * Admin accounts are created directly in the database — not via this endpoint.
+ *
+ * @param {object} userData
+ * @param {string} userData.name
+ * @param {string} userData.email
+ * @param {string} userData.password
+ * @param {string} [userData.phone]
+ * @param {string} [userData.role]          - defaults to resident
+ * @param {string} [userData.address]       - required for residents
+ * @param {string} [userData.communityName] - required for community_leader
+ * @param {{ latitude: number, longitude: number }} [userData.location]
  * @returns {{ user, token }}
  */
-const registerUser = async ({ name, email, password, phone }) => {
-  // Check for existing email
+const registerUser = async ({
+  name,
+  email,
+  password,
+  phone,
+  whatsappNumber,
+  role,
+  address,
+  communityName,
+  authorityName,
+  location,
+}) => {
   const existing = await User.findOne({ email });
   if (existing) {
     throw new AppError(
@@ -40,36 +58,59 @@ const registerUser = async ({ name, email, password, phone }) => {
     );
   }
 
-  // Create user – password hashing happens in the pre-save hook on User model
-  const user = await User.create({
+  const allowedRoles = [ROLES.RESIDENT, ROLES.COMMUNITY_LEADER, ROLES.WASTE_AUTHORITY];
+  const assignedRole = allowedRoles.includes(role) ? role : ROLES.RESIDENT;
+
+  const userData = {
     name,
     email,
-    passwordHash: password, // pre-save hook will hash this
+    passwordHash: password,
     phone: phone || null,
-    role: ROLES.RESIDENT, // new registrations are always residents
-  });
+    whatsappNumber: whatsappNumber || null,
+    role: assignedRole,
+    address: address || null,
+  };
 
-  const token = generateToken(user._id);
+  if (assignedRole === ROLES.COMMUNITY_LEADER) {
+    if (!communityName || !communityName.trim()) {
+      throw new AppError("Community name is required for community leaders.", HTTP_STATUS.BAD_REQUEST);
+    }
+    userData.communityName = communityName.trim();
+  }
+
+  if (assignedRole === ROLES.WASTE_AUTHORITY) {
+    if (!authorityName || !authorityName.trim()) {
+      throw new AppError("Authority name is required for waste authority accounts.", HTTP_STATUS.BAD_REQUEST);
+    }
+    userData.authorityName = authorityName.trim();
+  }
+
+  // Attach GeoJSON location if provided
+  if (location && location.latitude != null && location.longitude != null) {
+    userData.location = {
+      type: "Point",
+      coordinates: [location.longitude, location.latitude],
+    };
+  }
+
+  const user = await User.create(userData);
+  const token = generateToken(user._id, user.sessionVersion);
 
   return { user, token };
 };
 
 /**
  * Authenticate a user by email and password.
+ * Works for all roles including admin.
  *
- * @param {object} credentials - { email, password }
+ * @param {{ email, password }} credentials
  * @returns {{ user, token }}
  */
 const loginUser = async ({ email, password }) => {
-  // Retrieve user with passwordHash (excluded by default via select: false)
   const user = await User.findOne({ email }).select("+passwordHash");
 
   if (!user) {
-    // Use a generic message to avoid email enumeration
-    throw new AppError(
-      "Invalid email or password.",
-      HTTP_STATUS.UNAUTHORIZED
-    );
+    throw new AppError("Invalid email or password.", HTTP_STATUS.UNAUTHORIZED);
   }
 
   if (!user.isActive) {
@@ -81,15 +122,10 @@ const loginUser = async ({ email, password }) => {
 
   const isPasswordValid = await user.comparePassword(password);
   if (!isPasswordValid) {
-    throw new AppError(
-      "Invalid email or password.",
-      HTTP_STATUS.UNAUTHORIZED
-    );
+    throw new AppError("Invalid email or password.", HTTP_STATUS.UNAUTHORIZED);
   }
 
-  const token = generateToken(user._id);
-
-  // Remove passwordHash from the response object
+  const token = generateToken(user._id, user.sessionVersion);
   user.passwordHash = undefined;
 
   return { user, token };

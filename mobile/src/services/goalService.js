@@ -1,0 +1,12 @@
+import api from "../api/apiClient";
+const data = response => response.data.data;
+export const getGoalOptions = () => api.get("/goals/options").then(data);
+export const getGoalSummary = () => api.get("/goals/summary").then(data);
+export const getGoals = (status = "active", page = 1) => api.get("/goals", { params: { status, page } }).then(data);
+export const getGoal = id => api.get(`/goals/${id}`).then(data);
+export const getGoalHistory = (id, page = 1) => api.get(`/goals/${id}/history`, { params: { page } }).then(data);
+export const createGoal = values => api.post("/goals", values).then(data);
+export const editGoal = (id, values) => api.patch(`/goals/${id}`, values).then(data);
+export const updateGoalProgress = (id, values) => api.post(`/goals/${id}/progress`, values).then(data);
+export const cancelGoal = id => api.post(`/goals/${id}/cancel`).then(data);
+export const deleteGoal = id => api.delete(`/goals/${id}`).then(data);
