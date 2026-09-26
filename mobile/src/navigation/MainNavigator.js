@@ -124,12 +124,18 @@ const MapStack = () => (
   </Stack.Navigator>
 );
 
-const ScheduleStack = () => (
-  <Stack.Navigator screenOptions={{ headerShown: false }}>
-    <Stack.Screen name="ScheduleMain" component={CollectionScheduleScreen} />
-    <Stack.Screen name="CustomReminder" component={CustomReminderScreen} />
-  </Stack.Navigator>
-);
+const makeScheduleStack = (role) => {
+  const isAuthority = role === "waste_authority";
+  const ScheduleStack = () => (
+    <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="ScheduleMain" component={isAuthority ? ScheduleManagementScreen : CollectionScheduleScreen} />
+      <Stack.Screen name="ScheduleForm" component={ScheduleFormScreen} />
+      <Stack.Screen name="SetReminder" component={SetReminderScreen} />
+      <Stack.Screen name="CustomReminder" component={CustomReminderScreen} />
+    </Stack.Navigator>
+  );
+  return ScheduleStack;
+};
 
 const RecyclingStack = () => (
   <Stack.Navigator screenOptions={{ headerShown: false }}>
@@ -177,6 +183,7 @@ const MainNavigator = () => {
   const insets = useSafeAreaInsets();
   const role = user?.role || "resident";
   const HomeStack    = React.useMemo(() => makeHomeStack(role), [role]);
+  const ScheduleStack = React.useMemo(() => makeScheduleStack(role), [role]);
   const ProfileStack = React.useMemo(() => makeProfileStack(role), [role]);
 
   return (

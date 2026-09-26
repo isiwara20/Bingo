@@ -51,7 +51,11 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (__DEV__) {
-      console.error("[API Error]", error.code, error.message, error.response?.status, error.response?.data);
+      const errorCode = error.code;
+      const errorMessage = error.message;
+      const responseStatus = error.response?.status;
+      const responseData = error.response?.data;
+      console.error("[API Error]", errorCode, errorMessage, responseStatus, responseData);
     }
 
     // Network error (no response from server)

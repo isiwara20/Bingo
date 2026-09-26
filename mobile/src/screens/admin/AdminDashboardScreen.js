@@ -5,7 +5,7 @@
 
 import React, { useCallback, useEffect, useState } from "react";
 import {
-  View, Text, StyleSheet, ScrollView,
+  View, Text, StyleSheet, ScrollView, TouchableOpacity,
   RefreshControl, ActivityIndicator, Alert,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
@@ -21,7 +21,7 @@ const StatCard = ({ emoji, label, value, color }) => (
   </View>
 );
 
-const AdminDashboardScreen = () => {
+const AdminDashboardScreen = ({ navigation }) => {
   const { user } = useAuth();
   const [stats, setStats] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -65,6 +65,28 @@ const AdminDashboardScreen = () => {
             <StatCard emoji="✅" label="Resolved"       value={stats?.resolvedReports} color={COLORS.SUCCESS} />
             <StatCard emoji="📱" label="Verified Phones" value={stats?.verifiedPhones} color={COLORS.SECONDARY} />
             <StatCard emoji="🏘️" label="Communities"    value={stats?.communities}   color={COLORS.PRIMARY_DARK} />
+          </View>
+
+          <Text style={styles.sectionTitle}>Management</Text>
+          <View style={styles.actionGrid}>
+            {[
+              { emoji: "📅", label: "Manage Schedules", desc: "Create & manage collection schedules", color: "#00695C", screen: "Schedule" },
+              { emoji: "📢", label: "Manage Collection Alerts", desc: "Create route & weather alerts", color: COLORS.ACCENT, screen: "AlertManagement" },
+            ].map((action) => (
+              <TouchableOpacity
+                key={action.label}
+                style={[styles.actionCard, { borderLeftColor: action.color }]}
+                onPress={() => navigation.navigate(action.screen)}
+                accessibilityRole="button"
+              >
+                <Text style={styles.actionEmoji}>{action.emoji}</Text>
+                <View style={styles.actionContent}>
+                  <Text style={styles.actionLabel}>{action.label}</Text>
+                  <Text style={styles.actionDesc}>{action.desc}</Text>
+                </View>
+                <Text style={styles.actionArrow}>→</Text>
+              </TouchableOpacity>
+            ))}
           </View>
 
           <Text style={styles.sectionTitle}>User Breakdown</Text>
@@ -113,6 +135,18 @@ const styles = StyleSheet.create({
   breakdownDot: { width: 10, height: 10, borderRadius: 5, marginRight: 10 },
   breakdownLabel: { flex: 1, fontSize: 14, color: COLORS.TEXT_PRIMARY },
   breakdownValue: { fontSize: 18, fontWeight: "bold" },
+  actionGrid: { gap: 12 },
+  actionCard: {
+    flexDirection: "row", alignItems: "center", backgroundColor: COLORS.SURFACE,
+    borderRadius: 12, padding: 16, borderLeftWidth: 4,
+    shadowColor: "#000", shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.06, shadowRadius: 4, elevation: 2,
+  },
+  actionEmoji: { fontSize: 24, marginRight: 12 },
+  actionContent: { flex: 1 },
+  actionLabel: { fontSize: 15, fontWeight: "700", color: COLORS.TEXT_PRIMARY },
+  actionDesc: { fontSize: 12, color: COLORS.TEXT_SECONDARY, marginTop: 2 },
+  actionArrow: { fontSize: 18, color: COLORS.TEXT_DISABLED, fontWeight: "700" },
 });
 
 export default AdminDashboardScreen;

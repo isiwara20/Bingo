@@ -126,7 +126,7 @@ const CommunityLeaderDashboard = ({ navigation }) => {
           <ActionCard emoji="🗺️" label="Waste Map"        desc="View community waste reports"   color={COLORS.INFO}    onPress={() => navigation.navigate("Map")} />
           <ActionCard emoji="📢" label="Community Board"  desc="Post announcements & updates"   color="#1565C0"        onPress={() => navigation.navigate("Community")} />
           <ActionCard emoji="📅" label="Schedule"         desc="Collection schedule for area"   color={COLORS.SUCCESS} onPress={() => navigation.navigate("Schedule")} />
-          <ActionCard emoji="🔔" label="Collection Alerts" desc="Manage collection alerts"      color={COLORS.ACCENT}   onPress={() => navigation.navigate("AlertManagement")} />
+          <ActionCard emoji="🔔" label="Collection Alerts" desc="View collection alerts"         color={COLORS.ACCENT}   onPress={() => navigation.navigate("CollectionDashboard")} />
           <ActionCard emoji="♻️" label="Recycling Guide"  desc="Share recycling info"           color={COLORS.PRIMARY} onPress={() => navigation.navigate("Recycling")} />
           <ActionCard emoji="⭐" label="Rewards"          desc={`${points ?? user?.rewardPoints ?? 0} points earned`} color={COLORS.ACCENT} onPress={() => navigation.navigate("Rewards")} />
         </View>

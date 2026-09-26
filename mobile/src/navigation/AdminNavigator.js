@@ -11,6 +11,7 @@
 
 import React from "react";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
+import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
 import COLORS from "../constants/colors";
@@ -22,8 +23,12 @@ import AdminSmsConfigScreen    from "../screens/admin/AdminSmsConfigScreen";
 import AdminSettingsScreen     from "../screens/admin/AdminSettingsScreen";
 import AdminPlansScreen        from "../screens/admin/AdminPlansScreen";
 import AdminVerificationScreen from "../screens/admin/AdminVerificationScreen";
+import ScheduleManagementScreen from "../screens/ScheduleManagementScreen";
+import ScheduleFormScreen       from "../screens/ScheduleFormScreen";
+import AlertManagementScreen    from "../screens/AlertManagementScreen";
 
 const Tab = createBottomTabNavigator();
+const Stack = createNativeStackNavigator();
 
 const TAB_ICONS = {
   Dashboard:      { active: "view-dashboard",         inactive: "view-dashboard-outline" },
@@ -34,6 +39,15 @@ const TAB_ICONS = {
   "SMS Config":   { active: "message-cog",             inactive: "message-cog-outline" },
   Settings:       { active: "cog",                     inactive: "cog-outline" },
 };
+
+const DashboardStack = () => (
+  <Stack.Navigator screenOptions={{ headerShown: false }}>
+    <Stack.Screen name="DashboardMain" component={AdminDashboardScreen} />
+    <Stack.Screen name="Schedule" component={ScheduleManagementScreen} />
+    <Stack.Screen name="ScheduleForm" component={ScheduleFormScreen} />
+    <Stack.Screen name="AlertManagement" component={AlertManagementScreen} />
+  </Stack.Navigator>
+);
 
 const AdminNavigator = () => {
   const insets = useSafeAreaInsets();
@@ -67,7 +81,7 @@ const AdminNavigator = () => {
         },
       })}
     >
-      <Tab.Screen name="Dashboard"     component={AdminDashboardScreen} />
+      <Tab.Screen name="Dashboard"     component={DashboardStack} />
       <Tab.Screen name="Users"         component={AdminUsersScreen} />
       <Tab.Screen name="Verifications" component={AdminVerificationScreen} />
       <Tab.Screen name="Reports"       component={AdminReportsScreen} />
