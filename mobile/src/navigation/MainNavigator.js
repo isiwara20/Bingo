@@ -22,6 +22,29 @@ import { useTheme } from "../context/ThemeContext";
 import { getUiText } from "../constants/translations";
 import COLORS from "../constants/colors";
 
+// ── Screens ───────────────────────────────────────────────────────────────
+import HomeScreen                  from "../screens/HomeScreen";
+import ReportWasteScreen           from "../screens/ReportWasteScreen";
+import ReportReviewScreen          from "../screens/ReportReviewScreen";
+import ReportDetailsScreen         from "../screens/ReportDetailsScreen";
+import ReportStatusScreen          from "../screens/ReportStatusScreen";
+import WasteMapScreen              from "../screens/WasteMapScreen";
+import CollectionScheduleScreen    from "../screens/CollectionScheduleScreen";
+import ScheduleManagementScreen    from "../screens/ScheduleManagementScreen";
+import ScheduleFormScreen          from "../screens/ScheduleFormScreen";
+import CollectionDashboardScreen   from "../screens/CollectionDashboardScreen";
+import AlertManagementScreen       from "../screens/AlertManagementScreen";
+import SetReminderScreen           from "../screens/SetReminderScreen";
+import CustomReminderScreen        from "../screens/CustomReminderScreen";
+import RecyclingGuideScreen        from "../screens/RecyclingGuideScreen";
+import RecyclingCategoryScreen     from "../screens/RecyclingCategoryScreen";
+import WasteScanScreen             from "../screens/WasteScanScreen";
+import CommunityScreen             from "../screens/CommunityScreen";
+import NotificationsScreen         from "../screens/NotificationsScreen";
+import RewardsScreen               from "../screens/RewardsScreen";
+import ProfileScreen               from "../screens/ProfileScreen";
+import SettingsScreen              from "../screens/SettingsScreen";
+import PaymentScreen               from "../screens/PaymentScreen";
 // Role dashboards
 import ResidentDashboard        from "../screens/ResidentDashboard";
 import CommunityLeaderDashboard from "../screens/CommunityLeaderDashboard";
@@ -123,6 +146,18 @@ const makeProfileStack = (role) => {
   const ProfileMain = ROLE_PROFILES[role] || ProfileScreen;
   const ProfileStack = () => (
     <Stack.Navigator screenOptions={{ headerShown: false }}>
+      <Stack.Screen name="ProfileMain"   component={ProfileScreen} />
+      <Stack.Screen name="Settings"      component={SettingsScreen} />
+      <Stack.Screen name="Schedule"      component={isAuthority ? ScheduleManagementScreen : CollectionScheduleScreen} />
+      <Stack.Screen name="ScheduleForm"  component={ScheduleFormScreen} />
+      <Stack.Screen name="SetReminder"   component={SetReminderScreen} />
+      <Stack.Screen name="CustomReminder" component={CustomReminderScreen} />
+      <Stack.Screen name="CollectionDashboard" component={isAuthority ? AlertManagementScreen : CollectionDashboardScreen} />
+      <Stack.Screen name="Recycling"     component={RecyclingGuideScreen} />
+      <Stack.Screen name="RecyclingCategory" component={RecyclingCategoryScreen} />
+      <Stack.Screen name="WasteScan"     component={WasteScanScreen} />
+      <Stack.Screen name="Community"     component={CommunityScreen} />
+      <Stack.Screen name="Rewards"       component={RewardsScreen} />
       <Stack.Screen name="ProfileMain"           component={ProfileMain} />
       <Stack.Screen name="Settings"              component={SettingsScreen} />
       <Stack.Screen name="ResidentVerification"  component={ResidentVerificationScreen} />

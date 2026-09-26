@@ -2,12 +2,13 @@
  * BinGo – Recycling Guide Screen (Member 3 – Feature 3)
  * Hub: Explore Categories | Learn | Detective Game | Stories | Passport
  */
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity,
-  ActivityIndicator, RefreshControl, Alert, Animated,
+  ActivityIndicator, RefreshControl, Alert, Animated, Vibration, Image, Dimensions,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { Platform } from "react-native";
 import { useAuth } from "../context/AuthContext";
 import { getGuides, getMyProgress, updateProgress } from "../services/recyclingService";
 import COLORS from "../constants/colors";
@@ -26,36 +27,36 @@ const getCat = (c) => CAT_CONFIG[c] || { emoji: "♻️", color: COLORS.PRIMARY,
 
 // ── Waste Detective questions (30 cases, shuffled each game) ─────────────
 const ALL_DETECTIVE_CASES = [
-  { id:"d01", item:"Empty plastic water bottle",     emoji:"🍼", options:["Blue Bin ♻️","Grey Bin 🗑️","Red Bin ⚠️","Green Bin 🌿"],          answer:0, hint:"Rinse it first — then blue bin!" },
-  { id:"d02", item:"Pizza box (greasy)",             emoji:"🍕", options:["Blue Bin ♻️","Grey Bin 🗑️","Green Bin 🌿","Red Bin ⚠️"],          answer:1, hint:"Grease contaminates recycling" },
-  { id:"d03", item:"Banana peel",                    emoji:"🍌", options:["Grey Bin 🗑️","Blue Bin ♻️","Green Bin 🌿","Red Bin ⚠️"],          answer:2, hint:"Organic = green bin" },
-  { id:"d04", item:"Old mobile phone",               emoji:"📱", options:["Grey Bin 🗑️","E-Waste Drop-off","Blue Bin ♻️","Red Bin ⚠️"],      answer:1, hint:"Electronics need special recycling" },
-  { id:"d05", item:"Glass wine bottle (empty)",      emoji:"🍾", options:["Blue Bin ♻️","Grey Bin 🗑️","Green Bin 🌿","Glass Bank"],          answer:3, hint:"Glass banks are best for bottles" },
-  { id:"d06", item:"Aluminium can (rinsed)",         emoji:"🥤", options:["Blue Bin ♻️","Grey Bin 🗑️","Red Bin ⚠️","Green Bin 🌿"],          answer:0, hint:"Aluminium is highly recyclable!" },
-  { id:"d07", item:"Newspaper",                      emoji:"📰", options:["Blue Bin ♻️","Grey Bin 🗑️","Green Bin 🌿","Red Bin ⚠️"],          answer:0, hint:"Paper is great for recycling" },
-  { id:"d08", item:"Cooking oil (used)",             emoji:"🫙", options:["Grey Bin 🗑️","Blue Bin ♻️","Green Bin 🌿","Special collection"],  answer:3, hint:"Never pour oil down the drain" },
-  { id:"d09", item:"Plastic bag",                    emoji:"🛍️", options:["Blue Bin ♻️","Grey Bin 🗑️","Store drop-off","Green Bin 🌿"],      answer:2, hint:"Plastic bags jam sorting machines" },
-  { id:"d10", item:"Cardboard box (clean)",          emoji:"📦", options:["Blue Bin ♻️","Grey Bin 🗑️","Green Bin 🌿","Red Bin ⚠️"],          answer:0, hint:"Flatten it and put in blue bin" },
-  { id:"d11", item:"Coffee grounds",                 emoji:"☕", options:["Grey Bin 🗑️","Blue Bin ♻️","Green Bin 🌿","Red Bin ⚠️"],          answer:2, hint:"Coffee grounds are organic waste" },
-  { id:"d12", item:"Broken mirror",                  emoji:"🪞", options:["Blue Bin ♻️","Grey Bin 🗑️","Glass Bank","Red Bin ⚠️"],            answer:1, hint:"Broken glass is too dangerous for kerbside" },
-  { id:"d13", item:"Empty paint tin",                emoji:"🎨", options:["Blue Bin ♻️","Grey Bin 🗑️","Red Bin ⚠️","Hazardous collection"],  answer:3, hint:"Paint residue is hazardous" },
-  { id:"d14", item:"Shampoo bottle (rinsed)",        emoji:"🧴", options:["Blue Bin ♻️","Grey Bin 🗑️","Red Bin ⚠️","Green Bin 🌿"],          answer:0, hint:"HDPE plastic — recyclable when rinsed" },
-  { id:"d15", item:"Food-soiled napkins",            emoji:"🧻", options:["Blue Bin ♻️","Grey Bin 🗑️","Green Bin 🌿","Red Bin ⚠️"],          answer:1, hint:"Food contamination = not recyclable" },
-  { id:"d16", item:"AA batteries",                   emoji:"🔋", options:["Grey Bin 🗑️","Blue Bin ♻️","Battery recycling point","Red Bin ⚠️"],answer:2, hint:"Batteries contain toxic materials" },
-  { id:"d17", item:"Egg shells",                     emoji:"🥚", options:["Grey Bin 🗑️","Blue Bin ♻️","Green Bin 🌿","Red Bin ⚠️"],          answer:2, hint:"Egg shells are compostable" },
-  { id:"d18", item:"Steel food tin (rinsed)",        emoji:"🥫", options:["Blue Bin ♻️","Grey Bin 🗑️","Red Bin ⚠️","Green Bin 🌿"],          answer:0, hint:"Steel is 100% recyclable!" },
-  { id:"d19", item:"Styrofoam takeaway box",         emoji:"🍱", options:["Blue Bin ♻️","Grey Bin 🗑️","Green Bin 🌿","Styrofoam drop-off"],  answer:1, hint:"Styrofoam can't go in blue bin" },
-  { id:"d20", item:"Laptop computer",                emoji:"💻", options:["Grey Bin 🗑️","E-Waste Drop-off","Blue Bin ♻️","Red Bin ⚠️"],      answer:1, hint:"Electronics need special e-waste recycling" },
-  { id:"d21", item:"Grass clippings",                emoji:"🌱", options:["Grey Bin 🗑️","Blue Bin ♻️","Green Bin 🌿","Red Bin ⚠️"],          answer:2, hint:"Garden waste = green bin" },
-  { id:"d22", item:"Waxed paper cup",                emoji:"☕", options:["Blue Bin ♻️","Grey Bin 🗑️","Green Bin 🌿","Red Bin ⚠️"],          answer:1, hint:"Plastic lining makes it non-recyclable" },
-  { id:"d23", item:"Motor oil (used)",               emoji:"🛢️", options:["Grey Bin 🗑️","Blue Bin ♻️","Green Bin 🌿","Hazardous collection"],answer:3, hint:"Motor oil contaminates soil and water" },
-  { id:"d24", item:"Aluminium foil (clean)",         emoji:"🫕", options:["Blue Bin ♻️","Grey Bin 🗑️","Red Bin ⚠️","Green Bin 🌿"],          answer:0, hint:"Scrunch test — if it stays scrunched, recycle!" },
-  { id:"d25", item:"Tea bags",                       emoji:"🍵", options:["Grey Bin 🗑️","Blue Bin ♻️","Green Bin 🌿","Red Bin ⚠️"],          answer:2, hint:"Most tea bags are compostable" },
-  { id:"d26", item:"Broken ceramic mug",             emoji:"☕", options:["Blue Bin ♻️","Grey Bin 🗑️","Glass Bank","Red Bin ⚠️"],            answer:1, hint:"Ceramics can't be recycled kerbside" },
-  { id:"d27", item:"Fluorescent light bulb",         emoji:"💡", options:["Grey Bin 🗑️","Blue Bin ♻️","Hazardous collection","Red Bin ⚠️"],  answer:2, hint:"Contains mercury — needs special disposal" },
-  { id:"d28", item:"Cardboard egg carton",           emoji:"🥚", options:["Blue Bin ♻️","Grey Bin 🗑️","Green Bin 🌿","Red Bin ⚠️"],          answer:0, hint:"Paper/cardboard is recyclable" },
-  { id:"d29", item:"Crisp packet",                   emoji:"🍟", options:["Blue Bin ♻️","Grey Bin 🗑️","Green Bin 🌿","Store drop-off"],      answer:1, hint:"Multi-layer plastic — not kerbside recyclable" },
-  { id:"d30", item:"Medicine (expired)",             emoji:"💊", options:["Grey Bin 🗑️","Blue Bin ♻️","Green Bin 🌿","Pharmacy return"],     answer:3, hint:"Return medicines to a pharmacy for safe disposal" },
+  { id:"d01", item:"Empty plastic water bottle",     emoji:"🍼", options:["Blue Bin","Grey Bin","Red Bin","Green Bin"],          answer:0, hint:"Rinse it first — then blue bin!" },
+  { id:"d02", item:"Pizza box (greasy)",             emoji:"🍕", options:["Blue Bin","Grey Bin","Green Bin","Red Bin"],          answer:1, hint:"Grease contaminates recycling" },
+  { id:"d03", item:"Banana peel",                    emoji:"🍌", options:["Grey Bin","Blue Bin","Green Bin","Red Bin"],          answer:2, hint:"Organic = green bin" },
+  { id:"d04", item:"Old mobile phone",               emoji:"📱", options:["Grey Bin","E-Waste Drop-off","Blue Bin","Red Bin"],      answer:1, hint:"Electronics need special recycling" },
+  { id:"d05", item:"Glass wine bottle (empty)",      emoji:"🍾", options:["Blue Bin","Grey Bin","Green Bin","Glass Bank"],          answer:3, hint:"Glass banks are best for bottles" },
+  { id:"d06", item:"Aluminium can (rinsed)",         emoji:"🥤", options:["Blue Bin","Grey Bin","Red Bin","Green Bin"],          answer:0, hint:"Aluminium is highly recyclable!" },
+  { id:"d07", item:"Newspaper",                      emoji:"📰", options:["Blue Bin","Grey Bin","Green Bin","Red Bin"],          answer:0, hint:"Paper is great for recycling" },
+  { id:"d08", item:"Cooking oil (used)",             emoji:"🫙", options:["Grey Bin","Blue Bin","Green Bin","Special collection"],  answer:3, hint:"Never pour oil down the drain" },
+  { id:"d09", item:"Plastic bag",                    emoji:"🛍️", options:["Blue Bin","Grey Bin","Store drop-off","Green Bin"],      answer:2, hint:"Plastic bags jam sorting machines" },
+  { id:"d10", item:"Cardboard box (clean)",          emoji:"📦", options:["Blue Bin","Grey Bin","Green Bin","Red Bin"],          answer:0, hint:"Flatten it and put in blue bin" },
+  { id:"d11", item:"Coffee grounds",                 emoji:"☕", options:["Grey Bin","Blue Bin","Green Bin","Red Bin"],          answer:2, hint:"Coffee grounds are organic waste" },
+  { id:"d12", item:"Broken mirror",                  emoji:"🪞", options:["Blue Bin","Grey Bin","Glass Bank","Red Bin"],            answer:1, hint:"Broken glass is too dangerous for kerbside" },
+  { id:"d13", item:"Empty paint tin",                emoji:"🎨", options:["Blue Bin","Grey Bin","Red Bin","Hazardous collection"],  answer:3, hint:"Paint residue is hazardous" },
+  { id:"d14", item:"Shampoo bottle (rinsed)",        emoji:"🧴", options:["Blue Bin","Grey Bin","Red Bin","Green Bin"],          answer:0, hint:"HDPE plastic — recyclable when rinsed" },
+  { id:"d15", item:"Food-soiled napkins",            emoji:"🧻", options:["Blue Bin","Grey Bin","Green Bin","Red Bin"],          answer:1, hint:"Food contamination = not recyclable" },
+  { id:"d16", item:"AA batteries",                   emoji:"🔋", options:["Grey Bin","Blue Bin","Battery recycling point","Red Bin"],answer:2, hint:"Batteries contain toxic materials" },
+  { id:"d17", item:"Egg shells",                     emoji:"🥚", options:["Grey Bin","Blue Bin","Green Bin","Red Bin"],          answer:2, hint:"Egg shells are compostable" },
+  { id:"d18", item:"Steel food tin (rinsed)",        emoji:"🥫", options:["Blue Bin","Grey Bin","Red Bin","Green Bin"],          answer:0, hint:"Steel is 100% recyclable!" },
+  { id:"d19", item:"Styrofoam takeaway box",         emoji:"🍱", options:["Blue Bin","Grey Bin","Green Bin","Styrofoam drop-off"],  answer:1, hint:"Styrofoam can't go in blue bin" },
+  { id:"d20", item:"Laptop computer",                emoji:"💻", options:["Grey Bin","E-Waste Drop-off","Blue Bin","Red Bin"],      answer:1, hint:"Electronics need special e-waste recycling" },
+  { id:"d21", item:"Grass clippings",                emoji:"🌱", options:["Grey Bin","Blue Bin","Green Bin","Red Bin"],          answer:2, hint:"Garden waste = green bin" },
+  { id:"d22", item:"Waxed paper cup",                emoji:"☕", options:["Blue Bin","Grey Bin","Green Bin","Red Bin"],          answer:1, hint:"Plastic lining makes it non-recyclable" },
+  { id:"d23", item:"Motor oil (used)",               emoji:"🛢️", options:["Grey Bin","Blue Bin","Green Bin","Hazardous collection"],answer:3, hint:"Motor oil contaminates soil and water" },
+  { id:"d24", item:"Aluminium foil (clean)",         emoji:"🫕", options:["Blue Bin","Grey Bin","Red Bin","Green Bin"],          answer:0, hint:"Scrunch test — if it stays scrunched, recycle!" },
+  { id:"d25", item:"Tea bags",                       emoji:"🍵", options:["Grey Bin","Blue Bin","Green Bin","Red Bin"],          answer:2, hint:"Most tea bags are compostable" },
+  { id:"d26", item:"Broken ceramic mug",             emoji:"☕", options:["Blue Bin","Grey Bin","Glass Bank","Red Bin"],            answer:1, hint:"Ceramics can't be recycled kerbside" },
+  { id:"d27", item:"Fluorescent light bulb",         emoji:"💡", options:["Grey Bin","Blue Bin","Hazardous collection","Red Bin"],  answer:2, hint:"Contains mercury — needs special disposal" },
+  { id:"d28", item:"Cardboard egg carton",           emoji:"🥚", options:["Blue Bin","Grey Bin","Green Bin","Red Bin"],          answer:0, hint:"Paper/cardboard is recyclable" },
+  { id:"d29", item:"Crisp packet",                   emoji:"🍟", options:["Blue Bin","Grey Bin","Green Bin","Store drop-off"],      answer:1, hint:"Multi-layer plastic — not kerbside recyclable" },
+  { id:"d30", item:"Medicine (expired)",             emoji:"💊", options:["Grey Bin","Blue Bin","Green Bin","Pharmacy return"],     answer:3, hint:"Return medicines to a pharmacy for safe disposal" },
 ];
 
 const shuffleArray = (arr) => {
@@ -533,6 +534,77 @@ const LearnTab = ({ guides, onTrack, progress }) => {
   );
 };
 
+// ── Bin component for detective game ───────────────────────────────────────
+const BinComponent = ({ type, label, isSelected, isCorrect, isWrong, onPress, onLayout, index }) => {
+  const scaleAnim = useRef(new Animated.Value(1)).current;
+  const shakeAnim = useRef(new Animated.Value(0)).current;
+
+  // Bin image configurations
+  const binConfig = {
+    "Blue Bin": { image: require("../assets/images/bins/blue-bin.png") },
+    "Grey Bin": { image: require("../assets/images/bins/grey-bin.png") },
+    "Red Bin": { image: require("../assets/images/bins/red-bin.png") },
+    "Green Bin": { image: require("../assets/images/bins/green-bin.png") },
+    "E-Waste Drop-off": { image: require("../assets/images/bins/ewaste-bin.png") },
+    "Glass Bank": { image: require("../assets/images/bins/glass-bin.png") },
+    "Special collection": { image: require("../assets/images/bins/special-bin.png") },
+    "Store drop-off": { image: require("../assets/images/bins/store-bin.png") },
+    "Hazardous collection": { image: require("../assets/images/bins/hazardous-bin.png") },
+    "Battery recycling point": { image: require("../assets/images/bins/battery-bin.png") },
+    "Pharmacy return": { image: require("../assets/images/bins/pharmacy-bin.png") },
+    "Styrofoam drop-off": { image: require("../assets/images/bins/styrofoam-bin.png") },
+  };
+
+  const config = binConfig[type] || { image: require("../assets/images/bins/blue-bin.png") };
+
+  // Trigger animations based on state
+  React.useEffect(() => {
+    if (isCorrect) {
+      // Scale up animation for correct answer
+      Animated.sequence([
+        Animated.timing(scaleAnim, { toValue: 1.15, duration: 200, useNativeDriver: true }),
+        Animated.timing(scaleAnim, { toValue: 1, duration: 200, useNativeDriver: true }),
+      ]).start();
+    } else if (isWrong) {
+      // Shake animation for wrong answer
+      Animated.sequence([
+        Animated.timing(shakeAnim, { toValue: 10, duration: 50, useNativeDriver: true }),
+        Animated.timing(shakeAnim, { toValue: -10, duration: 50, useNativeDriver: true }),
+        Animated.timing(shakeAnim, { toValue: 10, duration: 50, useNativeDriver: true }),
+        Animated.timing(shakeAnim, { toValue: -10, duration: 50, useNativeDriver: true }),
+        Animated.timing(shakeAnim, { toValue: 0, duration: 50, useNativeDriver: true }),
+      ]).start();
+    }
+  }, [isCorrect, isWrong]);
+
+  const backgroundColor = "transparent";
+
+  return (
+    <TouchableOpacity onPress={onPress} activeOpacity={0.8}>
+      <Animated.View
+        style={[
+          S.binComponent,
+          {
+            backgroundColor,
+            transform: [
+              { scale: scaleAnim },
+              { translateX: shakeAnim },
+            ],
+          },
+        ]}
+        onLayout={(event) => onLayout && onLayout(index, event.nativeEvent.layout)}
+      >
+        <Image source={config.image} style={S.binImage} resizeMode="contain" />
+        <Text style={[S.binLabel, { color: isCorrect ? "#166534" : isWrong ? "#991B1B" : isSelected ? COLORS.PRIMARY : COLORS.TEXT_PRIMARY }]}>
+          {label}
+        </Text>
+        {isCorrect && <Text style={S.binCheckmark}>✓</Text>}
+        {isWrong && <Text style={S.binCross}>✗</Text>}
+      </Animated.View>
+    </TouchableOpacity>
+  );
+};
+
 // ── DETECTIVE TAB ─────────────────────────────────────────────────────────
 const DetectiveTab = ({ onTrack }) => {
   const [cases, setCases]       = useState(() => getGameSet());
@@ -541,16 +613,53 @@ const DetectiveTab = ({ onTrack }) => {
   const [showResult, setResult] = useState(false);
   const [score, setScore]       = useState(0);
   const [done, setDone]         = useState(false);
+  const [animateEmoji, setAnimateEmoji] = useState(false);
+  const [binLayouts, setBinLayouts] = useState({});
 
   const current = cases[caseIdx];
   const isCorrect = selected === current.answer;
+
+  const emojiAnim = useRef(new Animated.Value(0)).current;
+  const emojiScale = useRef(new Animated.Value(1)).current;
+  const emojiX = useRef(new Animated.Value(0)).current;
+  const emojiY = useRef(new Animated.Value(0)).current;
+
+  const handleBinLayout = (index, layout) => {
+    setBinLayouts(prev => ({ ...prev, [index]: layout }));
+  };
 
   const handleAnswer = (i) => {
     if (showResult) return;
     setSelected(i);
     setResult(true);
     const correct = i === current.answer;
-    if (correct) setScore(s => s + 1);
+    if (correct) {
+      setScore(s => s + 1);
+      setAnimateEmoji(true);
+      
+      // Calculate position based on bin index (0-3 grid)
+      // Bins are in 2 columns: indices 0,2 are left column, 1,3 are right column
+      const screenWidth = Dimensions.get('window').width;
+      const isLeftColumn = i % 2 === 0;
+      const xOffset = isLeftColumn ? -screenWidth * 0.25 : screenWidth * 0.25;
+      const yOffset = 400; // Move down to bin level
+      
+      // Animate emoji moving to bin
+      Animated.sequence([
+        Animated.timing(emojiScale, { toValue: 1.5, duration: 200, useNativeDriver: true }),
+        Animated.parallel([
+          Animated.timing(emojiX, { toValue: xOffset, duration: 600, useNativeDriver: true }),
+          Animated.timing(emojiY, { toValue: yOffset, duration: 600, useNativeDriver: true }),
+          Animated.timing(emojiScale, { toValue: 0, duration: 600, useNativeDriver: true }),
+        ]),
+      ]).start();
+    }
+    
+    // Vibration feedback
+    if (Platform.OS === "android") {
+      Vibration.vibrate(correct ? 100 : [50, 50, 50]);
+    }
+    
     onTrack("detective_result", correct ? "correct" : "wrong");
   };
 
@@ -559,6 +668,11 @@ const DetectiveTab = ({ onTrack }) => {
     setCaseIdx(i => i + 1);
     setSelected(null);
     setResult(false);
+    setAnimateEmoji(false);
+    emojiAnim.setValue(0);
+    emojiScale.setValue(1);
+    emojiX.setValue(0);
+    emojiY.setValue(0);
   };
 
   const restart = () => {
@@ -595,28 +709,39 @@ const DetectiveTab = ({ onTrack }) => {
 
       {/* Question */}
       <View style={S.detectiveQuestion}>
-        <Text style={S.detectiveItemEmoji}>{current.emoji}</Text>
+        <Animated.Text 
+          style={[
+            S.detectiveItemEmoji,
+            {
+              transform: [
+                { scale: emojiScale },
+                { translateX: emojiX },
+                { translateY: emojiY },
+              ],
+            }
+          ]}
+        >
+          {current.emoji}
+        </Animated.Text>
         <Text style={S.detectiveItemTitle}>What should be done with this item?</Text>
         <Text style={S.detectiveItemName}>{current.item}</Text>
       </View>
 
       {/* Options */}
       <View style={S.detectiveOptions}>
-        {current.options.map((opt, i) => {
-          let bg = COLORS.SURFACE, border = COLORS.BORDER, txtColor = COLORS.TEXT_PRIMARY;
-          if (showResult) {
-            if (i === current.answer) { bg = "#DCFCE7"; border = "#16A34A"; txtColor = "#166534"; }
-            else if (i === selected) { bg = "#FEE2E2"; border = "#DC2626"; txtColor = "#991B1B"; }
-          } else if (i === selected) { bg = COLORS.PRIMARY_TINT; border = COLORS.PRIMARY; txtColor = COLORS.PRIMARY; }
-          return (
-            <TouchableOpacity key={i} style={[S.detectiveOption, { backgroundColor: bg, borderColor: border }]}
-              onPress={() => handleAnswer(i)} accessibilityRole="button">
-              <Text style={[S.detectiveOptionTxt, { color: txtColor }]}>{opt}</Text>
-              {showResult && i === current.answer && <Text style={{ color: "#16A34A", fontWeight: "800" }}>✓</Text>}
-              {showResult && i === selected && i !== current.answer && <Text style={{ color: "#DC2626", fontWeight: "800" }}>✗</Text>}
-            </TouchableOpacity>
-          );
-        })}
+        {current.options.map((opt, i) => (
+          <BinComponent
+            key={i}
+            type={opt}
+            label={opt}
+            isSelected={selected === i && !showResult}
+            isCorrect={showResult && i === current.answer}
+            isWrong={showResult && i === selected && i !== current.answer}
+            onPress={() => handleAnswer(i)}
+            onLayout={handleBinLayout}
+            index={i}
+          />
+        ))}
       </View>
 
       {/* Hint & Next */}
@@ -1211,14 +1336,20 @@ const S = StyleSheet.create({
   detectiveBadge:   { backgroundColor: COLORS.PRIMARY, paddingHorizontal: 12, paddingVertical: 5, borderRadius: 20 },
   detectiveBadgeTxt:{ color: "#fff", fontWeight: "700", fontSize: 12 },
   detectiveProgress:{ fontSize: 13, color: COLORS.TEXT_SECONDARY, fontWeight: "600" },
-  detectiveQuestion:{ backgroundColor: COLORS.SURFACE, borderRadius: 16, padding: 24, alignItems: "center", marginBottom: 16, elevation: 2, borderWidth: 1, borderColor: COLORS.BORDER },
+  detectiveQuestion:{ backgroundColor: COLORS.SURFACE, borderRadius: 16, padding: 24, alignItems: "center", marginBottom: 32, elevation: 2, borderWidth: 1, borderColor: COLORS.BORDER },
   detectiveItemEmoji:{ fontSize: 56, marginBottom: 12 },
   detectiveItemTitle:{ fontSize: 14, color: COLORS.TEXT_SECONDARY, marginBottom: 6 },
   detectiveItemName: { fontSize: 18, fontWeight: "800", color: COLORS.TEXT_PRIMARY, textAlign: "center" },
-  detectiveOptions: { gap: 10, marginBottom: 14 },
+  detectiveOptions: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'center', rowGap: 100, columnGap: 12, marginTop: 20, marginBottom: 60 },
   detectiveOption:  { flexDirection: "row", justifyContent: "space-between", alignItems: "center", backgroundColor: COLORS.SURFACE, borderRadius: 12, padding: 14, borderWidth: 1.5, borderColor: COLORS.BORDER, elevation: 1 },
   detectiveOptionTxt:{ fontSize: 14, fontWeight: "600" },
   detectiveHint:    { flexDirection: "row", alignItems: "center", gap: 8, backgroundColor: "#FEF3C7", borderRadius: 12, padding: 12, marginBottom: 12 },
+  // Bin component styles
+  binComponent:     { width: "47%", aspectRatio: 0.8, alignItems: "center", justifyContent: "center", position: "relative", overflow: "visible" },
+  binImage:         { width: 160, height: 180, marginBottom: 4 },
+  binLabel:         { fontSize: 13, fontWeight: "700", textAlign: "center", marginTop: 4 },
+  binCheckmark:     { position: "absolute", top: 8, right: -27, fontSize: 32, fontWeight: "900", color: "#16A34A", textShadowColor: "#fff", textShadowRadius: 3 },
+  binCross:         { position: "absolute", top: 8, right: -25, fontSize: 32, fontWeight: "900", color: "#DC2626", textShadowColor: "#fff", textShadowRadius: 3 },
   detectiveHintEmoji:{ fontSize: 16 },
   detectiveHintTxt: { flex: 1, fontSize: 13, color: "#92400E" },
   detectiveNextBtn: { backgroundColor: COLORS.PRIMARY, borderRadius: 12, paddingVertical: 14, alignItems: "center" },
