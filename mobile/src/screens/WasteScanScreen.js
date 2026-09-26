@@ -200,6 +200,124 @@ export default function WasteScanScreen({ navigation }) {
               </View>
             )}
 
+            {/* Environmental Impact */}
+            {result.environmentalImpact && (
+              <View style={[S.infoCard, { backgroundColor: "#FEE2E2", borderColor: "#DC2626" }]}>
+                <Text style={{ fontSize: 20 }}>🌍</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={S.infoCardTitle}>Environmental Impact</Text>
+                  <Text style={S.infoCardTxt}>{result.environmentalImpact}</Text>
+                </View>
+              </View>
+            )}
+
+            {/* Decomposition Time */}
+            {result.decompositionTime && (
+              <View style={[S.infoCard, { backgroundColor: "#FEF3C7", borderColor: "#D97706" }]}>
+                <Text style={{ fontSize: 20 }}>⏱️</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={S.infoCardTitle}>Decomposition Time</Text>
+                  <Text style={S.infoCardTxt}>{result.decompositionTime}</Text>
+                </View>
+              </View>
+            )}
+
+            {/* Material Composition */}
+            {result.materialComposition && (
+              <View style={[S.infoCard, { backgroundColor: "#E0F2FE", borderColor: "#0284C7" }]}>
+                <Text style={{ fontSize: 20 }}>🧪</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={S.infoCardTitle}>Material Composition</Text>
+                  <Text style={S.infoCardTxt}>{result.materialComposition}</Text>
+                </View>
+              </View>
+            )}
+
+            {/* Recycling Process */}
+            {result.recyclingProcess && (
+              <View style={[S.infoCard, { backgroundColor: "#DCFCE7", borderColor: "#16A34A" }]}>
+                <Text style={{ fontSize: 20 }}>♻️</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={S.infoCardTitle}>How It's Recycled</Text>
+                  <Text style={S.infoCardTxt}>{result.recyclingProcess}</Text>
+                </View>
+              </View>
+            )}
+
+            {/* Common Mistakes */}
+            {result.commonMistakes && result.commonMistakes.length > 0 && (
+              <View style={[S.infoCard, { backgroundColor: "#FEE2E2", borderColor: "#DC2626" }]}>
+                <Text style={{ fontSize: 20 }}>❌</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={S.infoCardTitle}>Common Mistakes to Avoid</Text>
+                  {result.commonMistakes.map((mistake, i) => (
+                    <Text key={i} style={S.infoCardTxt}>• {mistake}</Text>
+                  ))}
+                </View>
+              </View>
+            )}
+
+            {/* Alternative Disposal */}
+            {result.alternativeDisposal && result.alternativeDisposal.length > 0 && (
+              <View style={[S.infoCard, { backgroundColor: "#E0F2FE", borderColor: "#0284C7" }]}>
+                <Text style={{ fontSize: 20 }}>🔄</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={S.infoCardTitle}>Alternative Disposal Methods</Text>
+                  {result.alternativeDisposal.map((method, i) => (
+                    <Text key={i} style={S.infoCardTxt}>• {method}</Text>
+                  ))}
+                </View>
+              </View>
+            )}
+
+            {/* Upcycling Ideas */}
+            {result.upcyclingIdeas && result.upcyclingIdeas.length > 0 && (
+              <View style={[S.infoCard, { backgroundColor: "#F3E8FF", borderColor: "#9333EA" }]}>
+                <Text style={{ fontSize: 20 }}>💡</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={S.infoCardTitle}>Creative Upcycling Ideas</Text>
+                  {result.upcyclingIdeas.map((idea, i) => (
+                    <Text key={i} style={S.infoCardTxt}>• {idea}</Text>
+                  ))}
+                </View>
+              </View>
+            )}
+
+            {/* Related Items */}
+            {result.relatedItems && result.relatedItems.length > 0 && (
+              <View style={[S.infoCard, { backgroundColor: "#F3F4F6", borderColor: "#6B7280" }]}>
+                <Text style={{ fontSize: 20 }}>📦</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={S.infoCardTitle}>Similar Items</Text>
+                  {result.relatedItems.map((item, i) => (
+                    <Text key={i} style={S.infoCardTxt}>• {item}</Text>
+                  ))}
+                </View>
+              </View>
+            )}
+
+            {/* Local Guidelines */}
+            {result.localGuidelines && (
+              <View style={[S.infoCard, { backgroundColor: "#DBEAFE", borderColor: "#2563EB" }]}>
+                <Text style={{ fontSize: 20 }}>📋</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={S.infoCardTitle}>Local Recycling Guidelines</Text>
+                  <Text style={S.infoCardTxt}>{result.localGuidelines}</Text>
+                </View>
+              </View>
+            )}
+
+            {/* Why This Bin */}
+            {result.whyThisBin && (
+              <View style={[S.infoCard, { backgroundColor: "#FEF3C7", borderColor: "#D97706" }]}>
+                <Text style={{ fontSize: 20 }}>❓</Text>
+                <View style={{ flex: 1 }}>
+                  <Text style={S.infoCardTitle}>Why This Bin?</Text>
+                  <Text style={S.infoCardTxt}>{result.whyThisBin}</Text>
+                </View>
+              </View>
+            )}
+
             {/* Actions */}
             <TouchableOpacity style={S.scanAgainBtn} onPress={reset}>
               <Text style={S.scanAgainBtnTxt}>🔍 Scan Another Item</Text>
@@ -390,6 +508,9 @@ const S = StyleSheet.create({
   tipTxt:            { flex: 1, fontSize: 13, fontWeight: "500", lineHeight: 18 },
   warningCard:       { flexDirection: "row", alignItems: "flex-start", gap: 10, backgroundColor: "#FEF3C7", borderRadius: 12, padding: 12 },
   warningTxt:        { flex: 1, fontSize: 13, color: "#92400E" },
+  infoCard:          { flexDirection: "row", alignItems: "flex-start", gap: 10, borderRadius: 12, padding: 12, borderWidth: 1 },
+  infoCardTitle:     { fontSize: 13, fontWeight: "700", color: COLORS.TEXT_PRIMARY, marginBottom: 4 },
+  infoCardTxt:       { flex: 1, fontSize: 12, color: COLORS.TEXT_PRIMARY, lineHeight: 17 },
   scanAgainBtn:      { backgroundColor: COLORS.PRIMARY, borderRadius: 14, paddingVertical: 15, alignItems: "center", marginTop: 4 },
   scanAgainBtnTxt:   { color: "#fff", fontSize: 15, fontWeight: "800" },
 });
