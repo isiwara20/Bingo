@@ -32,10 +32,11 @@
       android:usesCleartextTraffic="true">
 
       <!-- Google Maps API key (react-native-maps) -->
-      <!-- TODO: Replace YOUR_GOOGLE_MAPS_API_KEY with a real key from Google Cloud Console -->
+      <!-- NOTE: For development/testing only. Replace with your actual API key from Google Cloud Console -->
+      <!-- Get free API key at: https://console.cloud.google.com/ -->
       <meta-data
           android:name="com.google.android.geo.API_KEY"
-          android:value="YOUR_GOOGLE_MAPS_API_KEY" />
+          android:value="AIzaSyDyWJOw5VsifSWi1DZrB52yNXHPbl8Z_5M" />
 
       <activity
         android:name=".MainActivity"
