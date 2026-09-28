@@ -120,23 +120,27 @@ const PlaceholderCard = ({ message }) => (
 
 // ── Main Screen ────────────────────────────────────────────────────────────
 const HomeScreen = ({ navigation }) => {
-  const { user } = useAuth();
+  const { user, isLoggedIn } = useAuth();
 
   // Member 2: live recent reports
   const [recentReports, setRecentReports] = useState([]);
   const [reportsLoading, setReportsLoading] = useState(false);
 
   const loadRecentReports = useCallback(async () => {
+    // Only load if user is logged in
+    if (!isLoggedIn) return;
+
     setReportsLoading(true);
     try {
       const data = await getMyReports();
       setRecentReports(data.slice(0, 3)); // show last 3
-    } catch {
+    } catch (err) {
+      console.warn("Failed to load recent reports:", err.message);
       // Fail silently on dashboard – user can visit Reports tab for full list
     } finally {
       setReportsLoading(false);
     }
-  }, []);
+  }, [isLoggedIn]);
 
   useEffect(() => { loadRecentReports(); }, [loadRecentReports]);
 

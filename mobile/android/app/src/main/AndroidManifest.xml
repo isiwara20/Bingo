@@ -32,10 +32,12 @@
       android:theme="@style/AppTheme"
       android:usesCleartextTraffic="true">
 
-      <!-- Google Maps API key (react-native-maps + geolocation) -->
+      <!-- Google Maps API key (react-native-maps) -->
+      <!-- NOTE: For development/testing only. Replace with your actual API key from Google Cloud Console -->
+      <!-- Get free API key at: https://console.cloud.google.com/ -->
       <meta-data
           android:name="com.google.android.geo.API_KEY"
-          android:value="AIzaSyD-placeholder-replace-with-real-key" />
+          android:value="AIzaSyDyWJOw5VsifSWi1DZrB52yNXHPbl8Z_5M" />
 
       <activity
         android:name=".MainActivity"
