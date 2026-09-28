@@ -2,25 +2,11 @@
  * BinGo – Waste Map Screen
  * Member 2 – US-M2-06, US-M2-07
  *
- * Interactive map showing:
- *   - Illegal dumping report markers (pending/under_review)
- *   - Recycling centre markers
- *   - Waste collection point markers
- *
- * Features:
- *   - Current user location
- *   - Tap-to-view marker callout panel
- *   - Filter bar: All / Dumping / Recycling / Collection
- *   - Refresh control
- *   - Loading / error / empty states
- *
- * Map data: live from backend API.
- * MOCK location data is in seed.js – clearly labelled.
- *
- * TODO Sprint 2: marker clustering for large datasets.
+ * Interactive map using Leaflet + OpenStreetMap (no API key required).
+ * Displays illegal dumping reports, recycling centres, collection points.
  */
 
-import React, { useState, useEffect, useRef, useCallback } from "react";
+import React, { useState, useRef, useCallback, useEffect } from "react";
 import {
   View,
   Text,
@@ -29,21 +15,12 @@ import {
   TouchableOpacity,
   ScrollView,
   Alert,
-  Platform,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import MapView, { Marker, Callout, PROVIDER_GOOGLE } from "react-native-maps";
+import { WebView } from "react-native-webview";
 import { getCurrentLocation } from "../services/locationService";
 import { getReportLocations, getWasteLocations } from "../services/mapService";
 import COLORS from "../constants/colors";
-
-// ── Default region: Colombo, Sri Lanka ────────────────────────────────────
-const DEFAULT_REGION = {
-  latitude: 6.9271,
-  longitude: 79.8612,
-  latitudeDelta: 0.06,
-  longitudeDelta: 0.06,
-};
 
 // ── Filter definitions ─────────────────────────────────────────────────────
 const FILTERS = [
@@ -53,18 +30,7 @@ const FILTERS = [
   { id: "collection_point", label: "Collection", emoji: "📦" },
 ];
 
-const WASTE_EMOJIS = {
-  general: "🗑️", plastic: "🧴", glass: "🍶", paper: "📄",
-  metal: "🔩", electronic: "📱", construction: "🧱",
-  organic: "🌿", hazardous: "☢️", mixed: "♻️", other: "❓",
-};
-
-const STATUS_LABELS = {
-  pending: "Pending", under_review: "Under Review",
-  cleaned: "Cleaned", rejected: "Rejected",
-};
-
-// ── Sub-components ─────────────────────────────────────────────────────────
+// ── FilterBar ──────────────────────────────────────────────────────────────
 const FilterBar = ({ activeFilter, onSelect }) => (
   <ScrollView
     horizontal
@@ -79,13 +45,9 @@ const FilterBar = ({ activeFilter, onSelect }) => (
         onPress={() => onSelect(f.id)}
         accessibilityRole="button"
         accessibilityLabel={`Filter: ${f.label}`}
-        accessibilityState={{ selected: activeFilter === f.id }}
       >
         <Text style={styles.filterEmoji}>{f.emoji}</Text>
-        <Text style={[
-          styles.filterLabel,
-          activeFilter === f.id && styles.filterLabelActive,
-        ]}>
+        <Text style={[styles.filterLabel, activeFilter === f.id && styles.filterLabelActive]}>
           {f.label}
         </Text>
       </TouchableOpacity>
@@ -93,204 +55,223 @@ const FilterBar = ({ activeFilter, onSelect }) => (
   </ScrollView>
 );
 
-const MarkerCallout = ({ item, type, onViewDetails }) => {
-  if (type === "report") {
-    return (
-      <Callout onPress={onViewDetails} style={styles.callout}>
-        <View style={styles.calloutContent}>
-          <View style={styles.calloutHeader}>
-            <Text style={styles.calloutIcon}>🚨</Text>
-            <Text style={styles.calloutTitle}>Illegal Dumping</Text>
-          </View>
-          <Text style={styles.calloutRow}>
-            <Text style={styles.calloutKey}>Waste: </Text>
-            {WASTE_EMOJIS[item.wasteType] || "🗑️"} {item.wasteType?.charAt(0).toUpperCase() + item.wasteType?.slice(1)}
-          </Text>
-          <Text style={styles.calloutRow}>
-            <Text style={styles.calloutKey}>Status: </Text>
-            {STATUS_LABELS[item.status] || item.status}
-          </Text>
-          <Text style={styles.calloutRow}>
-            <Text style={styles.calloutKey}>Date: </Text>
-            {new Date(item.createdAt).toLocaleDateString("en-US", {
-              day: "numeric", month: "short", year: "numeric",
-            })}
-          </Text>
-          {item.address ? (
-            <Text style={styles.calloutRow} numberOfLines={1}>
-              <Text style={styles.calloutKey}>Area: </Text>
-              {item.address}
-            </Text>
-          ) : null}
-          <TouchableOpacity style={styles.calloutBtn} onPress={onViewDetails}>
-            <Text style={styles.calloutBtnText}>View Details →</Text>
-          </TouchableOpacity>
-        </View>
-      </Callout>
-    );
+// ── Build Leaflet HTML ─────────────────────────────────────────────────────
+const buildMapHTML = (centerLat, centerLng, markers) => {
+  const markersJson = JSON.stringify(markers);
+  return `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no"/>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css"/>
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    html, body, #map { width: 100%; height: 100%; }
+    .custom-popup .leaflet-popup-content-wrapper {
+      border-radius: 10px;
+      padding: 0;
+      min-width: 200px;
+    }
+    .popup-header { display: flex; align-items: center; gap: 8px; padding: 10px 12px 6px; font-weight: bold; font-size: 14px; }
+    .popup-row { padding: 2px 12px; font-size: 12px; color: #555; }
+    .popup-key { font-weight: 600; color: #222; }
+    .popup-btn {
+      display: block; margin: 8px 12px 10px;
+      background: #4CAF50; color: white;
+      border: none; border-radius: 6px;
+      padding: 6px 12px; font-size: 12px;
+      cursor: pointer; text-align: center; width: calc(100% - 24px);
+    }
+    .dot-red    { background: #F44336; }
+    .dot-green  { background: #4CAF50; }
+    .dot-blue   { background: #2196F3; }
+  </style>
+</head>
+<body>
+<div id="map"></div>
+<script>
+  var map = L.map('map', { zoomControl: true }).setView([${centerLat}, ${centerLng}], 13);
+
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors',
+    maxZoom: 19,
+  }).addTo(map);
+
+  var markers = ${markersJson};
+
+  function makeIcon(color) {
+    var svg = '<svg xmlns="http://www.w3.org/2000/svg" width="28" height="40" viewBox="0 0 28 40">' +
+      '<path d="M14 0C6.27 0 0 6.27 0 14c0 9.33 14 26 14 26s14-16.67 14-26C28 6.27 21.73 0 14 0z" fill="' + color + '"/>' +
+      '<circle cx="14" cy="14" r="6" fill="white"/>' +
+      '</svg>';
+    return L.divIcon({
+      html: svg,
+      iconSize: [28, 40],
+      iconAnchor: [14, 40],
+      popupAnchor: [0, -40],
+      className: ''
+    });
   }
 
-  if (type === "recycling_centre") {
-    return (
-      <Callout style={styles.callout}>
-        <View style={styles.calloutContent}>
-          <View style={styles.calloutHeader}>
-            <Text style={styles.calloutIcon}>♻️</Text>
-            <Text style={styles.calloutTitle}>Recycling Centre</Text>
-          </View>
-          <Text style={styles.calloutRow}>
-            <Text style={styles.calloutKey}>Name: </Text>
-            {item.name}
-          </Text>
-          {item.address ? (
-            <Text style={styles.calloutRow} numberOfLines={2}>
-              <Text style={styles.calloutKey}>Address: </Text>
-              {item.address}
-            </Text>
-          ) : null}
-          {item.operatingHours ? (
-            <Text style={styles.calloutRow}>
-              <Text style={styles.calloutKey}>Hours: </Text>
-              {item.operatingHours}
-            </Text>
-          ) : null}
-          {item.acceptedWasteTypes?.length > 0 ? (
-            <Text style={styles.calloutRow} numberOfLines={2}>
-              <Text style={styles.calloutKey}>Accepts: </Text>
-              {item.acceptedWasteTypes.join(", ")}
-            </Text>
-          ) : null}
-        </View>
-      </Callout>
-    );
-  }
+  var redIcon   = makeIcon('#F44336');
+  var greenIcon = makeIcon('#4CAF50');
+  var blueIcon  = makeIcon('#2196F3');
 
-  // collection_point or bin
-  return (
-    <Callout style={styles.callout}>
-      <View style={styles.calloutContent}>
-        <View style={styles.calloutHeader}>
-          <Text style={styles.calloutIcon}>📦</Text>
-          <Text style={styles.calloutTitle}>Collection Point</Text>
-        </View>
-        <Text style={styles.calloutRow}>
-          <Text style={styles.calloutKey}>Name: </Text>
-          {item.name}
-        </Text>
-        {item.address ? (
-          <Text style={styles.calloutRow} numberOfLines={2}>
-            <Text style={styles.calloutKey}>Address: </Text>
-            {item.address}
-          </Text>
-        ) : null}
-      </View>
-    </Callout>
-  );
+  markers.forEach(function(m) {
+    var icon = m.type === 'report' ? redIcon : (m.type === 'recycling_centre' ? greenIcon : blueIcon);
+    var marker = L.marker([m.lat, m.lng], { icon: icon }).addTo(map);
+
+    var popupHtml = '<div>';
+    if (m.type === 'report') {
+      popupHtml += '<div class="popup-header">🚨 Illegal Dumping</div>';
+      popupHtml += '<div class="popup-row"><span class="popup-key">Waste: </span>' + m.wasteType + '</div>';
+      popupHtml += '<div class="popup-row"><span class="popup-key">Status: </span>' + m.status + '</div>';
+      popupHtml += '<div class="popup-row"><span class="popup-key">Date: </span>' + m.date + '</div>';
+      if (m.address) popupHtml += '<div class="popup-row"><span class="popup-key">📍 </span>' + m.address + '</div>';
+      popupHtml += '<button class="popup-btn" onclick="window.ReactNativeWebView.postMessage(JSON.stringify({type:\\'viewReport\\',id:\\''+m.id+'\\'}))">View Details →</button>';
+    } else if (m.type === 'recycling_centre') {
+      popupHtml += '<div class="popup-header">♻️ Recycling Centre</div>';
+      popupHtml += '<div class="popup-row"><span class="popup-key">Name: </span>' + m.name + '</div>';
+      if (m.address) popupHtml += '<div class="popup-row"><span class="popup-key">📍 </span>' + m.address + '</div>';
+      if (m.hours) popupHtml += '<div class="popup-row"><span class="popup-key">Hours: </span>' + m.hours + '</div>';
+      if (m.accepts) popupHtml += '<div class="popup-row"><span class="popup-key">Accepts: </span>' + m.accepts + '</div>';
+    } else {
+      popupHtml += '<div class="popup-header">📦 Collection Point</div>';
+      popupHtml += '<div class="popup-row"><span class="popup-key">Name: </span>' + m.name + '</div>';
+      if (m.address) popupHtml += '<div class="popup-row"><span class="popup-key">📍 </span>' + m.address + '</div>';
+    }
+    popupHtml += '</div>';
+
+    marker.bindPopup(popupHtml, { className: 'custom-popup', maxWidth: 240 });
+  });
+</script>
+</body>
+</html>`;
 };
 
 // ── Main Screen ────────────────────────────────────────────────────────────
 const WasteMapScreen = ({ navigation }) => {
-  const mapRef = useRef(null);
+  const webViewRef = useRef(null);
 
-  const [region, setRegion]               = useState(DEFAULT_REGION);
-  const [userLocation, setUserLocation]   = useState(null);
+  const [userLocation, setUserLocation]   = useState({ lat: 6.9271, lng: 79.8612 });
   const [reportMarkers, setReportMarkers] = useState([]);
   const [locationMarkers, setLocationMarkers] = useState([]);
   const [loading, setLoading]             = useState(true);
   const [refreshing, setRefreshing]       = useState(false);
   const [error, setError]                 = useState(null);
   const [activeFilter, setActiveFilter]   = useState("all");
+  const [mapHtml, setMapHtml]             = useState(null);
 
-  // ── Load all map data ────────────────────────────────────────────────────
+  // ── Build markers array for Leaflet ────────────────────────────────────
+  const buildMarkers = useCallback((reports, locations, filter) => {
+    const result = [];
+
+    if (filter === "all" || filter === "illegal_dumping") {
+      reports.forEach((r) => {
+        const lat = r.location?.coordinates?.[1];
+        const lng = r.location?.coordinates?.[0];
+        if (lat == null || lng == null) return;
+        result.push({
+          type: "report",
+          id: r._id,
+          lat, lng,
+          wasteType: r.wasteType || "unknown",
+          status: r.status || "pending",
+          address: r.address || "",
+          date: r.createdAt
+            ? new Date(r.createdAt).toLocaleDateString("en-US", { day: "numeric", month: "short", year: "numeric" })
+            : "",
+        });
+      });
+    }
+
+    locations.forEach((loc) => {
+      const lat = loc.location?.coordinates?.[1];
+      const lng = loc.location?.coordinates?.[0];
+      if (lat == null || lng == null) return;
+      if (filter !== "all" && filter !== loc.type &&
+          !(filter === "collection_point" && loc.type === "bin")) return;
+      result.push({
+        type: loc.type === "recycling_centre" ? "recycling_centre" : "collection_point",
+        id: loc._id,
+        lat, lng,
+        name: loc.name || "",
+        address: loc.address || "",
+        hours: loc.operatingHours || "",
+        accepts: (loc.acceptedWasteTypes || []).join(", "),
+      });
+    });
+
+    return result;
+  }, []);
+
+  // ── Load map data ────────────────────────────────────────────────────────
   const loadMapData = useCallback(async (silent = false) => {
     if (!silent) setLoading(true);
     setError(null);
 
-    // 1. Try to get user location (non-blocking if denied)
+    let centerLat = 6.9271;
+    let centerLng = 79.8612;
+
     try {
       const coords = await getCurrentLocation();
-      setUserLocation(coords);
-      setRegion({
-        latitude: coords.latitude,
-        longitude: coords.longitude,
-        latitudeDelta: 0.06,
-        longitudeDelta: 0.06,
-      });
+      centerLat = coords.latitude;
+      centerLng = coords.longitude;
+      setUserLocation({ lat: centerLat, lng: centerLng });
     } catch {
-      // Location denied or unavailable – use default region, continue loading
+      // use default Colombo coords
     }
 
-    // 2. Load report markers and facility markers in parallel
     const [reportRes, locationRes] = await Promise.allSettled([
       getReportLocations(),
       getWasteLocations(),
     ]);
 
-    if (reportRes.status === "fulfilled") {
-      setReportMarkers(reportRes.value || []);
-    } else {
-      console.warn("[Map] Failed to load report markers:", reportRes.reason?.message);
-    }
+    const reports   = reportRes.status   === "fulfilled" ? (reportRes.value   || []) : [];
+    const locations = locationRes.status === "fulfilled" ? (locationRes.value || []) : [];
 
-    if (locationRes.status === "fulfilled") {
-      setLocationMarkers(locationRes.value || []);
-    } else {
-      console.warn("[Map] Failed to load facility markers:", locationRes.reason?.message);
-    }
-
-    // If both failed it's likely a network/auth issue
-    if (
-      reportRes.status === "rejected" &&
-      locationRes.status === "rejected"
-    ) {
+    if (reportRes.status === "rejected" && locationRes.status === "rejected") {
       setError("Could not load map data. Check your connection.");
     }
 
+    setReportMarkers(reports);
+    setLocationMarkers(locations);
+
+    const markers = buildMarkers(reports, locations, activeFilter);
+    setMapHtml(buildMapHTML(centerLat, centerLng, markers));
+
     setLoading(false);
     setRefreshing(false);
-  }, []);
+  }, [activeFilter, buildMarkers]);
 
   useEffect(() => { loadMapData(); }, [loadMapData]);
+
+  // ── Rebuild HTML when filter changes ────────────────────────────────────
+  useEffect(() => {
+    if (reportMarkers.length > 0 || locationMarkers.length > 0) {
+      const markers = buildMarkers(reportMarkers, locationMarkers, activeFilter);
+      setMapHtml(buildMapHTML(userLocation.lat, userLocation.lng, markers));
+    }
+  }, [activeFilter]);
 
   const onRefresh = () => {
     setRefreshing(true);
     loadMapData(true);
   };
 
-  // ── Centre map on user ───────────────────────────────────────────────────
-  const centreOnUser = () => {
-    if (userLocation && mapRef.current) {
-      mapRef.current.animateToRegion({
-        latitude: userLocation.latitude,
-        longitude: userLocation.longitude,
-        latitudeDelta: 0.025,
-        longitudeDelta: 0.025,
-      }, 400);
-    } else {
-      Alert.alert(
-        "Location Unavailable",
-        "Could not determine your location. Check your GPS and permissions."
-      );
-    }
+  // ── Handle messages from WebView (e.g. "View Details" button) ───────────
+  const onWebViewMessage = (event) => {
+    try {
+      const data = JSON.parse(event.nativeEvent.data);
+      if (data.type === "viewReport" && data.id) {
+        navigation.navigate("ReportDetails", { reportId: data.id });
+      }
+    } catch (_) {}
   };
 
-  // ── Navigate to report details ───────────────────────────────────────────
-  const viewReportDetails = (reportId) => {
-    navigation.navigate("ReportDetails", { reportId });
-  };
-
-  // ── Compute visible markers by active filter ─────────────────────────────
-  const visibleReports = (activeFilter === "all" || activeFilter === "illegal_dumping")
-    ? reportMarkers : [];
-
-  const visibleLocations = locationMarkers.filter((loc) => {
-    if (activeFilter === "all") return true;
-    if (activeFilter === "recycling_centre") return loc.type === "recycling_centre";
-    if (activeFilter === "collection_point") return loc.type === "collection_point" || loc.type === "bin";
-    return false;
-  });
-
-  const totalVisible = visibleReports.length + visibleLocations.length;
+  const totalVisible = buildMarkers(reportMarkers, locationMarkers, activeFilter).length;
 
   return (
     <SafeAreaView style={styles.container} edges={["top"]}>
@@ -323,58 +304,19 @@ const WasteMapScreen = ({ navigation }) => {
 
       {/* ── Map ─────────────────────────────────────────────────────── */}
       <View style={styles.mapWrap}>
-        <MapView
-          ref={mapRef}
-          style={styles.map}
-          provider={PROVIDER_GOOGLE}
-          region={region}
-          showsUserLocation
-          showsMyLocationButton={false}
-          showsCompass
-          accessibilityLabel="Interactive waste map"
-        >
-          {/* Illegal dumping report markers */}
-          {visibleReports.map((report) => {
-            const lat = report.location?.coordinates?.[1];
-            const lng = report.location?.coordinates?.[0];
-            if (lat == null || lng == null) return null;
-            return (
-              <Marker
-                key={`report-${report._id}`}
-                coordinate={{ latitude: lat, longitude: lng }}
-                pinColor={COLORS.MARKER_REPORT}
-                accessibilityLabel={`Dumping report: ${report.wasteType}`}
-              >
-                <MarkerCallout
-                  item={report}
-                  type="report"
-                  onViewDetails={() => viewReportDetails(report._id)}
-                />
-              </Marker>
-            );
-          })}
-
-          {/* Facility markers (recycling centres + collection points) */}
-          {visibleLocations.map((loc) => {
-            const lat = loc.location?.coordinates?.[1];
-            const lng = loc.location?.coordinates?.[0];
-            if (lat == null || lng == null) return null;
-            const pinColor =
-              loc.type === "recycling_centre"
-                ? COLORS.MARKER_RECYCLING
-                : COLORS.MARKER_COLLECTION;
-            return (
-              <Marker
-                key={`loc-${loc._id}`}
-                coordinate={{ latitude: lat, longitude: lng }}
-                pinColor={pinColor}
-                accessibilityLabel={`${loc.type}: ${loc.name}`}
-              >
-                <MarkerCallout item={loc} type={loc.type} />
-              </Marker>
-            );
-          })}
-        </MapView>
+        {mapHtml ? (
+          <WebView
+            ref={webViewRef}
+            source={{ html: mapHtml }}
+            style={styles.map}
+            onMessage={onWebViewMessage}
+            javaScriptEnabled
+            domStorageEnabled
+            startInLoadingState
+            mixedContentMode="always"
+            accessibilityLabel="Interactive waste map"
+          />
+        ) : null}
 
         {/* Loading overlay */}
         {loading && (
@@ -388,31 +330,18 @@ const WasteMapScreen = ({ navigation }) => {
         {error && !loading && (
           <View style={styles.errorOverlay}>
             <Text style={styles.errorText}>{error}</Text>
-            <TouchableOpacity
-              style={styles.errorRetryBtn}
-              onPress={() => loadMapData()}
-            >
+            <TouchableOpacity style={styles.errorRetryBtn} onPress={() => loadMapData()}>
               <Text style={styles.errorRetryText}>Retry</Text>
             </TouchableOpacity>
           </View>
         )}
-
-        {/* Centre-on-user FAB */}
-        <TouchableOpacity
-          style={styles.locationFab}
-          onPress={centreOnUser}
-          accessibilityRole="button"
-          accessibilityLabel="Centre map on my location"
-        >
-          <Text style={styles.locationFabIcon}>📍</Text>
-        </TouchableOpacity>
       </View>
 
       {/* ── Legend ──────────────────────────────────────────────────── */}
       <View style={styles.legend}>
-        <LegendDot color={COLORS.MARKER_REPORT}     label="Dumping" />
-        <LegendDot color={COLORS.MARKER_RECYCLING}  label="Recycling" />
-        <LegendDot color={COLORS.MARKER_COLLECTION} label="Collection" />
+        <LegendDot color="#F44336" label="Dumping" />
+        <LegendDot color="#4CAF50" label="Recycling" />
+        <LegendDot color="#2196F3" label="Collection" />
         <Text style={styles.legendNote}>
           {reportMarkers.length} reports · {locationMarkers.length} facilities
         </Text>
@@ -430,132 +359,57 @@ const LegendDot = ({ color, label }) => (
 
 // ── Styles ─────────────────────────────────────────────────────────────────
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: COLORS.BACKGROUND },
-
+  container:   { flex: 1, backgroundColor: COLORS.BACKGROUND },
   header: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    alignItems: "center",
-    paddingHorizontal: 16,
-    paddingVertical: 10,
-    backgroundColor: COLORS.SURFACE,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.BORDER,
+    flexDirection: "row", justifyContent: "space-between", alignItems: "center",
+    paddingHorizontal: 16, paddingVertical: 10,
+    backgroundColor: COLORS.SURFACE, borderBottomWidth: 1, borderBottomColor: COLORS.BORDER,
   },
   headerTitle: { fontSize: 18, fontWeight: "bold", color: COLORS.TEXT_PRIMARY },
-  headerSub: { fontSize: 11, color: COLORS.TEXT_SECONDARY, marginTop: 1 },
+  headerSub:   { fontSize: 11, color: COLORS.TEXT_SECONDARY, marginTop: 1 },
   refreshText: { color: COLORS.PRIMARY, fontWeight: "600", fontSize: 14 },
 
-  filterBar: {
-    backgroundColor: COLORS.SURFACE,
-    borderBottomWidth: 1,
-    borderBottomColor: COLORS.BORDER,
-    maxHeight: 52,
-  },
-  filterBarContent: {
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    gap: 8,
-    flexDirection: "row",
-  },
+  filterBar:        { backgroundColor: COLORS.SURFACE, borderBottomWidth: 1, borderBottomColor: COLORS.BORDER, maxHeight: 52 },
+  filterBarContent: { paddingHorizontal: 12, paddingVertical: 8, gap: 8, flexDirection: "row" },
   filterChip: {
-    flexDirection: "row",
-    alignItems: "center",
-    gap: 4,
-    paddingHorizontal: 12,
-    paddingVertical: 5,
-    borderRadius: 20,
-    borderWidth: 1.5,
-    borderColor: COLORS.BORDER,
-    backgroundColor: COLORS.SURFACE,
+    flexDirection: "row", alignItems: "center", gap: 4,
+    paddingHorizontal: 12, paddingVertical: 5,
+    borderRadius: 20, borderWidth: 1.5,
+    borderColor: COLORS.BORDER, backgroundColor: COLORS.SURFACE,
   },
-  filterChipActive: {
-    borderColor: COLORS.PRIMARY,
-    backgroundColor: "#E8F5E9",
-  },
-  filterEmoji: { fontSize: 13 },
-  filterLabel: { fontSize: 12, color: COLORS.TEXT_SECONDARY, fontWeight: "500" },
-  filterLabelActive: { color: COLORS.PRIMARY, fontWeight: "700" },
+  filterChipActive: { borderColor: COLORS.PRIMARY, backgroundColor: "#E8F5E9" },
+  filterEmoji:      { fontSize: 13 },
+  filterLabel:      { fontSize: 12, color: COLORS.TEXT_SECONDARY, fontWeight: "500" },
+  filterLabelActive:{ color: COLORS.PRIMARY, fontWeight: "700" },
 
   mapWrap: { flex: 1, position: "relative" },
-  map: { ...StyleSheet.absoluteFillObject },
+  map:     { flex: 1 },
 
   loadingOverlay: {
     ...StyleSheet.absoluteFillObject,
     backgroundColor: "rgba(255,255,255,0.85)",
-    justifyContent: "center",
-    alignItems: "center",
-    gap: 10,
+    justifyContent: "center", alignItems: "center", gap: 10,
   },
   loadingText: { color: COLORS.TEXT_SECONDARY, fontSize: 14 },
 
   errorOverlay: {
-    position: "absolute",
-    top: 16, left: 16, right: 16,
-    backgroundColor: "#FFEBEE",
-    borderRadius: 10,
-    padding: 12,
-    alignItems: "center",
-    gap: 8,
+    position: "absolute", top: 16, left: 16, right: 16,
+    backgroundColor: "#FFEBEE", borderRadius: 10, padding: 12,
+    alignItems: "center", gap: 8,
   },
-  errorText: { color: COLORS.ERROR, fontSize: 13, textAlign: "center" },
-  errorRetryBtn: {
-    backgroundColor: COLORS.ERROR,
-    paddingHorizontal: 20,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  errorRetryText: { color: COLORS.TEXT_INVERSE, fontWeight: "700", fontSize: 13 },
-
-  locationFab: {
-    position: "absolute",
-    bottom: 20,
-    right: 16,
-    width: 48,
-    height: 48,
-    borderRadius: 24,
-    backgroundColor: COLORS.SURFACE,
-    justifyContent: "center",
-    alignItems: "center",
-    elevation: 5,
-    shadowColor: "#000",
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.2,
-    shadowRadius: 4,
-  },
-  locationFabIcon: { fontSize: 24 },
-
-  callout: { width: 240 },
-  calloutContent: { padding: 8 },
-  calloutHeader: { flexDirection: "row", alignItems: "center", gap: 6, marginBottom: 6 },
-  calloutIcon: { fontSize: 18 },
-  calloutTitle: { fontSize: 14, fontWeight: "bold", color: COLORS.TEXT_PRIMARY, flex: 1 },
-  calloutRow: { fontSize: 12, color: COLORS.TEXT_SECONDARY, marginBottom: 3, lineHeight: 17 },
-  calloutKey: { fontWeight: "600", color: COLORS.TEXT_PRIMARY },
-  calloutBtn: {
-    marginTop: 6,
-    backgroundColor: COLORS.PRIMARY,
-    paddingVertical: 6,
-    borderRadius: 6,
-    alignItems: "center",
-  },
-  calloutBtnText: { color: COLORS.TEXT_INVERSE, fontWeight: "700", fontSize: 12 },
+  errorText:     { color: COLORS.ERROR, fontSize: 13, textAlign: "center" },
+  errorRetryBtn: { backgroundColor: COLORS.ERROR, paddingHorizontal: 20, paddingVertical: 8, borderRadius: 8 },
+  errorRetryText:{ color: "#fff", fontWeight: "700", fontSize: 13 },
 
   legend: {
-    flexDirection: "row",
-    alignItems: "center",
-    flexWrap: "wrap",
-    gap: 12,
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    backgroundColor: COLORS.SURFACE,
-    borderTopWidth: 1,
-    borderTopColor: COLORS.BORDER,
+    flexDirection: "row", alignItems: "center", flexWrap: "wrap",
+    gap: 12, paddingHorizontal: 16, paddingVertical: 8,
+    backgroundColor: COLORS.SURFACE, borderTopWidth: 1, borderTopColor: COLORS.BORDER,
   },
-  legendItem: { flexDirection: "row", alignItems: "center", gap: 5 },
-  legendDot: { width: 10, height: 10, borderRadius: 5 },
+  legendItem:  { flexDirection: "row", alignItems: "center", gap: 5 },
+  legendDot:   { width: 10, height: 10, borderRadius: 5 },
   legendLabel: { fontSize: 11, color: COLORS.TEXT_SECONDARY },
-  legendNote: { fontSize: 11, color: COLORS.TEXT_DISABLED, marginLeft: "auto" },
+  legendNote:  { fontSize: 11, color: COLORS.TEXT_DISABLED, marginLeft: "auto" },
 });
 
 export default WasteMapScreen;
