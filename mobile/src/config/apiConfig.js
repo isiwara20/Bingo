@@ -17,7 +17,7 @@
 // This works over USB regardless of Wi-Fi network, IP changes, or firewall rules.
 // Run: adb reverse tcp:5000 tcp:5000  (already done automatically at startup)
 const API_BASE_URL =
-  process.env.API_BASE_URL || "http://localhost:5000/api/v1";
+  process.env.API_BASE_URL || "https://bingo-backend-2zmk.onrender.com/api/v1";
 
 export default {
   API_BASE_URL,

@@ -1,0 +1,36 @@
+services:
+  - type: web
+    name: bingo-backend
+    runtime: node
+    rootDir: server
+    buildCommand: npm install
+    startCommand: node server.js
+    plan: free
+    autoDeploy: true
+    envVars:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: 10000
+      - key: MONGODB_URI
+        sync: false
+      - key: JWT_SECRET
+        sync: false
+      - key: JWT_EXPIRES_IN
+        value: 7d
+      - key: BCRYPT_SALT_ROUNDS
+        value: 12
+      - key: CORS_ORIGIN
+        value: "*"
+      - key: WACLIENT_INSTANCE_ID
+        sync: false
+      - key: WACLIENT_ACCESS_TOKEN
+        sync: false
+      - key: DIRECTPAY_MERCHANT_ID
+        sync: false
+      - key: DIRECTPAY_SECRET_KEY
+        sync: false
+      - key: DIRECTPAY_STAGE
+        value: PROD
+      - key: SERVER_URL
+        sync: false
