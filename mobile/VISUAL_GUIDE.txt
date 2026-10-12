@@ -1,0 +1,316 @@
+
+╔══════════════════════════════════════════════════════════════════════════╗
+║                                                                          ║
+║           🔑 VISUAL GUIDE: How to Add Gemini API Keys                   ║
+║                                                                          ║
+╚══════════════════════════════════════════════════════════════════════════╝
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ STEP 1: GET YOUR API KEY FROM GOOGLE AI STUDIO
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Open your web browser (Chrome, Firefox, Safari, Edge, etc.)
+
+2. Go to this URL:
+   
+   ┌────────────────────────────────────────────────────┐
+   │ https://aistudio.google.com/app/apikey             │
+   └────────────────────────────────────────────────────┘
+
+3. Sign in with your Google account
+
+4. You'll see a page that looks like this:
+
+   ┌────────────────────────────────────────────────────┐
+   │  Google AI Studio                                  │
+   │  ═══════════════════                               │
+   │                                                     │
+   │  API Keys                                          │
+   │                                                     │
+   │  [ + Create API Key ]  [Existing Keys]            │
+   │                                                     │
+   └────────────────────────────────────────────────────┘
+
+5. Click the "Create API Key" button
+
+6. You'll get a key that looks like this:
+
+   ┌────────────────────────────────────────────────────┐
+   │  Your API Key:                                     │
+   │                                                     │
+   │  AIzaSyDh4qF5Xx-XxXxXxXxXxXxXxXxXxXxXxX          │
+   │                                                     │
+   │  [ Copy ]  [ Restrict Key ]                        │
+   └────────────────────────────────────────────────────┘
+
+7. Click "Copy" to copy the key to your clipboard
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ STEP 2: PASTE THE KEY INTO YOUR .env FILE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Navigate to your project folder in File Explorer (Windows) or Finder (Mac)
+
+   Your project location:
+   
+   ┌────────────────────────────────────────────────────┐
+   │  E:\Documents\SLIIT\Bingo\                         │
+   │    └── mobile                                      │
+   │         └── .env  ← THIS FILE!                     │
+   └────────────────────────────────────────────────────┘
+
+2. Find and open the file called ".env" in the "mobile" folder
+
+   💡 TIP: If you can't see the file:
+   - Windows: In File Explorer, go to View → Show → File name extensions
+   - Mac: Press Cmd+Shift+. to show hidden files
+
+3. Open .env with any text editor:
+   - Windows: Right-click → Edit with Notepad
+   - Mac: Right-click → Open With → TextEdit
+   - Or use VS Code, Sublime, Notepad++, etc.
+
+4. You'll see something like this:
+
+   ┌────────────────────────────────────────────────────┐
+   │ # Backend API Base URL (Production - Render)       │
+   │ API_BASE_URL=https://bingo-backend...              │
+   │                                                     │
+   │ # Gemini AI API Keys                               │
+   │ GEMINI_API_KEY=YOUR_ACTUAL_GEMINI_API_KEY_HERE    │
+   │ GEMINI_API_KEY_2=YOUR_SECOND_GEMINI_API_KEY_HERE  │
+   │ GEMINI_API_KEY_3=YOUR_THIRD_GEMINI_API_KEY_HERE   │
+   └────────────────────────────────────────────────────┘
+
+5. Replace "YOUR_ACTUAL_GEMINI_API_KEY_HERE" with the key you copied:
+
+   BEFORE (❌ Won't work):
+   ┌────────────────────────────────────────────────────┐
+   │ GEMINI_API_KEY=YOUR_ACTUAL_GEMINI_API_KEY_HERE    │
+   └────────────────────────────────────────────────────┘
+
+   AFTER (✅ Will work):
+   ┌────────────────────────────────────────────────────┐
+   │ GEMINI_API_KEY=AIzaSyDh4qF5Xx-XxXxXxXxXxXxXxXx   │
+   └────────────────────────────────────────────────────┘
+
+6. Save the file (Ctrl+S on Windows, Cmd+S on Mac)
+
+7. Close the text editor
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ STEP 3: TEST YOUR API KEY
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Open your terminal/command prompt
+
+2. Navigate to the mobile folder:
+
+   ┌────────────────────────────────────────────────────┐
+   │ cd mobile                                          │
+   └────────────────────────────────────────────────────┘
+
+3. Run the test command:
+
+   ┌────────────────────────────────────────────────────┐
+   │ npm run test:keys                                  │
+   └────────────────────────────────────────────────────┘
+
+4. You should see this output:
+
+   SUCCESS ✅:
+   ┌────────────────────────────────────────────────────┐
+   │ 🔑 Testing Key 1...                                │
+   │    Key: AIzaSyDh4q...XxXx                          │
+   │    ✅ SUCCESS: API responded with "Hello"          │
+   │                                                     │
+   │ ✅ Valid keys: 1/1                                 │
+   │ 🎉 All keys are valid! Your app is ready.         │
+   └────────────────────────────────────────────────────┘
+
+   FAILURE ❌:
+   ┌────────────────────────────────────────────────────┐
+   │ 🔑 Testing Key 1...                                │
+   │    Key: YOUR_ACTUA...HERE                          │
+   │    ❌ FAILED: Invalid API key                      │
+   │                                                     │
+   │ ❌ No valid keys!                                  │
+   └────────────────────────────────────────────────────┘
+   
+   If you see FAILURE, go back to Step 1 and make sure you:
+   - Got a real key from Google AI Studio
+   - The key starts with "AIza"
+   - You pasted it correctly in .env
+   - You saved the .env file
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ STEP 4: REBUILD YOUR APP
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Clean old build (in terminal):
+
+   ┌────────────────────────────────────────────────────┐
+   │ npm run build:clean                                │
+   └────────────────────────────────────────────────────┘
+
+   Wait for: "BUILD SUCCESSFUL"
+
+2. Build new APK:
+
+   ┌────────────────────────────────────────────────────┐
+   │ npm run build:apk                                  │
+   └────────────────────────────────────────────────────┘
+
+   This takes 5-10 minutes. Wait for: "BUILD SUCCESSFUL"
+
+3. Your new APK is ready at:
+
+   ┌────────────────────────────────────────────────────┐
+   │ mobile/android/app/build/outputs/apk/release/      │
+   │                    app-release.apk                 │
+   └────────────────────────────────────────────────────┘
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ STEP 5: INSTALL ON YOUR PHONE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+METHOD A: Using ADB (Phone connected via USB)
+
+   1. Connect phone via USB cable
+   
+   2. Enable USB debugging on phone:
+      Settings → About Phone → Tap "Build Number" 7 times
+      Settings → Developer Options → Enable "USB Debugging"
+   
+   3. In terminal:
+      ┌────────────────────────────────────────────────────┐
+      │ npm run install:apk                                │
+      └────────────────────────────────────────────────────┘
+
+METHOD B: Manual Install
+
+   1. Copy app-release.apk to your phone
+      (via USB, Google Drive, Bluetooth, etc.)
+   
+   2. Open the APK file on your phone
+   
+   3. Tap "Install"
+   
+   4. Open the BinGo app
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ STEP 6: TEST THE GEMINI FEATURES
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Open the BinGo app on your phone
+
+2. Navigate to "Scan Waste" screen
+
+3. Take a photo or select an image
+
+4. Wait for AI analysis
+
+5. You should see results:
+
+   ✅ SUCCESS - You'll see:
+   ┌────────────────────────────────────────────────────┐
+   │  📷 Plastic Water Bottle                           │
+   │                                                     │
+   │  Bin: Blue Recycling Bin                           │
+   │  Confidence: High                                  │
+   │                                                     │
+   │  Disposal Steps:                                   │
+   │  1. Rinse the bottle                               │
+   │  2. Remove the cap                                 │
+   │  3. Place in blue bin                              │
+   │                                                     │
+   │  Environmental Impact: ...                         │
+   └────────────────────────────────────────────────────┘
+
+   ❌ FAILURE - You'll see:
+   ┌────────────────────────────────────────────────────┐
+   │  ⚠️ Error                                           │
+   │                                                     │
+   │  No valid Gemini API keys found!                   │
+   │  Please add your API keys to mobile/.env           │
+   └────────────────────────────────────────────────────┘
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ TROUBLESHOOTING
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+PROBLEM: "Cannot find module '@env'"
+
+SOLUTION:
+┌────────────────────────────────────────────────────┐
+│ npm install --save-dev react-native-dotenv         │
+│ npm run start:reset                                │
+└────────────────────────────────────────────────────┘
+
+
+PROBLEM: "Invalid API key" error
+
+SOLUTION:
+- Make sure key starts with "AIza"
+- Check you copied the entire key
+- Try creating a new key in Google AI Studio
+- Make sure you saved the .env file
+
+
+PROBLEM: Still getting "No valid keys" error in app
+
+SOLUTION: Complete rebuild
+┌────────────────────────────────────────────────────┐
+│ cd mobile                                          │
+│ npm run build:clean                                │
+│ npm run start:reset     (Ctrl+C after it starts)  │
+│ npm run build:apk                                  │
+│ npm run install:apk                                │
+└────────────────────────────────────────────────────┘
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ QUICK REFERENCE
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Get Keys:     https://aistudio.google.com/app/apikey
+Edit File:    mobile/.env
+Test Keys:    npm run test:keys
+Build APK:    npm run build:apk
+Install:      npm run install:apk
+
+Key Format:   AIzaSyXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+              ^^^^^^ Must start with "AIza"
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+ CHECKLIST
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+[ ] Went to Google AI Studio
+[ ] Created API key (starts with AIza)
+[ ] Copied the key
+[ ] Opened mobile/.env
+[ ] Pasted key (replaced YOUR_ACTUAL_GEMINI_API_KEY_HERE)
+[ ] Saved the file
+[ ] Ran npm run test:keys (passed ✅)
+[ ] Ran npm run build:clean
+[ ] Ran npm run build:apk
+[ ] Installed APK on phone
+[ ] Tested "Scan Waste" feature (works! 🎉)
+
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Good luck! 🍀
+
+For more detailed help, read: HOW_TO_ADD_API_KEYS.md
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━

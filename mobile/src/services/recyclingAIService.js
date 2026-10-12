@@ -6,7 +6,7 @@
 
 import { GEMINI_API_KEYS } from "../config/keys";
 
-const GEMINI_URL = "https://generativelanguage.googleapis.com/v1/models/gemini-3.6-flash:generateContent";
+const GEMINI_URL = "https://generativelanguage.googleapis.com/v1beta/models/gemini-flash-latest:generateContent";
 
 // Track current key index and rate-limited keys
 let currentKeyIndex = 0;
