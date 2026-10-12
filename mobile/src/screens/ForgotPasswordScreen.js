@@ -14,7 +14,7 @@ import React, { useEffect, useRef, useState } from "react";
 import {
   View, Text, TextInput, TouchableOpacity, StyleSheet,
   ActivityIndicator, KeyboardAvoidingView, Platform,
-  ScrollView, Image, Animated, Pressable,
+  ScrollView, Image, Animated, Pressable, AccessibilityInfo,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import Icon from "react-native-vector-icons/MaterialCommunityIcons";
@@ -76,7 +76,7 @@ const ps = StyleSheet.create({
 });
 
 // ── Password field with eye toggle ────────────────────────────────────────────
-const PasswordField = ({ label, value, onChangeText, error, inputRef, ...props }) => {
+const PasswordField = ({ label, value, onChangeText, error, inputRef, accessibilityLabel, ...props }) => {
   const [visible, setVisible] = useState(false);
   return (
     <View style={s.inputGroup}>
@@ -89,6 +89,7 @@ const PasswordField = ({ label, value, onChangeText, error, inputRef, ...props }
           onChangeText={onChangeText}
           secureTextEntry={!visible}
           placeholderTextColor={COLORS.TEXT_DISABLED}
+          accessibilityLabel={accessibilityLabel || label}
           {...props}
         />
         <Pressable
@@ -101,7 +102,7 @@ const PasswordField = ({ label, value, onChangeText, error, inputRef, ...props }
           <Icon name={visible ? "eye-off-outline" : "eye-outline"} size={22} color={COLORS.TEXT_SECONDARY} />
         </Pressable>
       </View>
-      {error ? <Text style={s.errorText}>{error}</Text> : null}
+      {error ? <Text accessibilityRole="alert" style={s.errorText}>{error}</Text> : null}
     </View>
   );
 };
@@ -137,13 +138,26 @@ const SuccessView = ({ navigation }) => {
   const slideY  = useRef(new Animated.Value(20)).current;
 
   useEffect(() => {
-    Animated.sequence([
-      Animated.timing(opacity, { toValue: 1, duration: 300, useNativeDriver: true }),
-      Animated.spring(scale,   { toValue: 1, friction: 5, tension: 80, useNativeDriver: true }),
-      Animated.timing(slideY,  { toValue: 0, duration: 300, useNativeDriver: true }),
-    ]).start();
-    const t = setTimeout(() => navigation.reset({ index: 0, routes: [{ name: "Login" }] }), 3500);
-    return () => clearTimeout(t);
+    let active = true;
+    AccessibilityInfo.isReduceMotionEnabled().then(reduced => {
+      if (!active) return;
+      if (reduced) {
+        opacity.setValue(1);
+        scale.setValue(1);
+        slideY.setValue(0);
+      } else {
+        Animated.sequence([
+          Animated.timing(opacity, { toValue: 1, duration: 300, useNativeDriver: true }),
+          Animated.spring(scale,   { toValue: 1, friction: 5, tension: 80, useNativeDriver: true }),
+          Animated.timing(slideY,  { toValue: 0, duration: 300, useNativeDriver: true }),
+        ]).start();
+      }
+    });
+    const t = setTimeout(() => navigation.reset({ index: 0, routes: [{ name: "Login" }] }), 4500);
+    return () => {
+      active = false;
+      clearTimeout(t);
+    };
   }, []);
 
   return (
@@ -152,7 +166,7 @@ const SuccessView = ({ navigation }) => {
         <Icon name="lock-check" size={52} color={COLORS.PRIMARY} />
       </Animated.View>
       <Animated.View style={{ transform: [{ translateY: slideY }], alignItems: "center", gap: 8 }}>
-        <Text style={s.successTitle}>Password Reset!</Text>
+        <Text style={s.successTitle}>Password reset.</Text>
         <Text style={s.successSub}>
           Your password has been updated successfully.{"\n"}Sign in with your new password.
         </Text>
@@ -207,10 +221,12 @@ export default function ForgotPasswordScreen({ navigation }) {
 
   // Countdown timer for resend
   useEffect(() => {
-    if (countdown <= 0) return;
-    const t = setTimeout(() => setCountdown(c => c - 1), 1000);
-    return () => clearTimeout(t);
-  }, [countdown]);
+    if (countdown <= 0) return undefined;
+    const timer = setInterval(() => {
+      setCountdown(c => (c <= 1 ? 0 : c - 1));
+    }, 1000);
+    return () => clearInterval(timer);
+  }, [countdown > 0]);
 
   const clearErrors = (key) => setErrors(e => ({ ...e, [key]: null }));
 
@@ -254,7 +270,7 @@ export default function ForgotPasswordScreen({ navigation }) {
       } else {
         const pwOk = PW_RULES.every(r => r.test(password));
         if (!pwOk) return setErrors({ password: "Password does not meet requirements." });
-        if (password !== confirmPw) return setErrors({ confirmPw: "Passwords do not match." });
+        if (password !== confirmPw) return setErrors({ confirmPw: "Passwords don’t match." });
         await completePasswordReset(resetToken, password);
         setSuccess(true);
       }
@@ -356,6 +372,7 @@ export default function ForgotPasswordScreen({ navigation }) {
                     <View style={[s.inputRow, errors.email && s.inputError]}>
                       <Icon name="email-outline" size={20} color={COLORS.TEXT_SECONDARY} />
                       <TextInput
+                        accessibilityLabel="Email address"
                         style={s.inputFlex}
                         value={email}
                         onChangeText={t => { setEmail(t); clearErrors("email"); }}
@@ -370,7 +387,7 @@ export default function ForgotPasswordScreen({ navigation }) {
                         editable={!busy}
                       />
                     </View>
-                    {errors.email && <Text style={s.errorText}>{errors.email}</Text>}
+                    {errors.email && <Text accessibilityRole="alert" style={s.errorText}>{errors.email}</Text>}
                   </View>
                 )}
 
@@ -386,6 +403,18 @@ export default function ForgotPasswordScreen({ navigation }) {
                     </View>
                     <Text style={s.label}>Verification Code</Text>
                     <View style={s.otpRow}>
+                      <TextInput
+                        accessibilityLabel="Verification code"
+                        style={{ position: "absolute", width: 1, height: 1, opacity: 0 }}
+                        value={otp.join("")}
+                        onChangeText={t => {
+                          const digits = t.replace(/\D/g, "").slice(0, OTP_LENGTH).split("");
+                          const next = Array(OTP_LENGTH).fill("");
+                          digits.forEach((d, idx) => { next[idx] = d; });
+                          setOtp(next);
+                          clearErrors("otp");
+                        }}
+                      />
                       {otp.map((d, i) => (
                         <TextInput
                           key={i}
@@ -407,7 +436,7 @@ export default function ForgotPasswordScreen({ navigation }) {
                         />
                       ))}
                     </View>
-                    {errors.otp && <Text style={s.errorText}>{errors.otp}</Text>}
+                    {errors.otp && <Text accessibilityRole="alert" style={s.errorText}>{errors.otp}</Text>}
                   </View>
                 )}
 
@@ -415,7 +444,8 @@ export default function ForgotPasswordScreen({ navigation }) {
                 {step === 2 && (
                   <>
                     <PasswordField
-                      label="New Password"
+                      label="New password"
+                      accessibilityLabel="New password"
                       value={password}
                       onChangeText={t => { setPassword(t); clearErrors("password"); }}
                       error={errors.password}
@@ -428,7 +458,8 @@ export default function ForgotPasswordScreen({ navigation }) {
                     />
                     <PasswordStrength value={password} />
                     <PasswordField
-                      label="Confirm New Password"
+                      label="Confirm password"
+                      accessibilityLabel="Confirm password"
                       inputRef={confirmRef}
                       value={confirmPw}
                       onChangeText={t => { setConfirm(t); clearErrors("confirmPw"); }}
@@ -463,9 +494,9 @@ export default function ForgotPasswordScreen({ navigation }) {
                   ) : (
                     <View style={s.btnInner}>
                       <Text style={s.btnTxt}>
-                        {step === 0 ? "Send WhatsApp Code"
-                          : step === 1 ? "Verify Code"
-                          : "Reset Password"}
+                        {step === 0 ? "Send WhatsApp code"
+                          : step === 1 ? "Verify code"
+                          : "Reset password"}
                       </Text>
                       <Icon name="arrow-right" size={20} color="#fff" />
                     </View>
@@ -475,31 +506,29 @@ export default function ForgotPasswordScreen({ navigation }) {
                 {/* Resend (step 1) */}
                 {step === 1 && (
                   <View style={s.resendRow}>
-                    {countdown > 0 ? (
-                      <Text style={s.countdownTxt}>
-                        Resend in <Text style={s.countdownNum}>{countdown}s</Text>
+                    <TouchableOpacity
+                      onPress={handleResend}
+                      disabled={busy || countdown > 0}
+                      accessibilityRole="button"
+                    >
+                      <Text style={[s.linkTxt, countdown > 0 && s.countdownTxt]}>
+                        {countdown > 0 ? `Resend code in ${countdown}s` : "Didn’t get a code? Resend"}
                       </Text>
-                    ) : (
-                      <TouchableOpacity
-                        onPress={handleResend}
-                        disabled={busy}
-                        accessibilityRole="button"
-                      >
-                        <Text style={s.linkTxt}>Didn't receive a code? Resend</Text>
-                      </TouchableOpacity>
-                    )}
+                    </TouchableOpacity>
                   </View>
                 )}
 
-                {/* Use different email (step 1) */}
-                {step === 1 && (
+                {/* Reset / restart step */}
+                {step > 0 && (
                   <TouchableOpacity
                     onPress={() => { setStep(0); setOtp(Array(OTP_LENGTH).fill("")); setErrors({}); setNotice(""); }}
                     disabled={busy}
                     style={s.resendRow}
                     accessibilityRole="button"
                   >
-                    <Text style={s.linkTxtMuted}>Use a different email</Text>
+                    <Text style={s.linkTxtMuted}>
+                      {step === 1 ? "Use a different email" : "Start again with a new code"}
+                    </Text>
                   </TouchableOpacity>
                 )}
               </View>
