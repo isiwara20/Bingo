@@ -10,16 +10,17 @@
 
 const request = require("supertest");
 const app = require("../src/app");
+const RecyclingGuide = require("../src/models/RecyclingGuide");
 
 describe("RBAC – Admin-only endpoints", () => {
-  it("GET /api/v1/users should return 401 without token", async () => {
-    const res = await request(app).get("/api/v1/users");
+  it("GET /api/v1/admin/users should return 401 without token", async () => {
+    const res = await request(app).get("/api/v1/admin/users");
     expect(res.status).toBe(401);
     expect(res.body.success).toBe(false);
   });
 
-  it("DELETE /api/v1/users/:id should return 401 without token", async () => {
-    const res = await request(app).delete("/api/v1/users/64abc123def456789012");
+  it("GET /api/v1/users/pending-verifications should return 401 without token", async () => {
+    const res = await request(app).get("/api/v1/users/pending-verifications");
     expect(res.status).toBe(401);
     expect(res.body.success).toBe(false);
   });
@@ -61,10 +62,14 @@ describe("RBAC – Public endpoints should be accessible", () => {
   it("GET /api/v1/recycling should not require auth (no 401/403)", async () => {
     // This is a public endpoint. Without DB it may 500, but must not 401/403.
     // Full integration test (200 response) requires MongoDB – see docs/testing.md.
+    const findSpy = jest.spyOn(RecyclingGuide, "find").mockReturnValue({
+      sort: jest.fn().mockResolvedValue([]),
+    });
     const res = await request(app).get("/api/v1/recycling");
     expect([200, 500]).toContain(res.status);
     expect(res.status).not.toBe(401);
     expect(res.status).not.toBe(403);
+    findSpy.mockRestore();
   });
 });
 
