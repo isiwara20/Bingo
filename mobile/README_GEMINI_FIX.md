@@ -166,8 +166,8 @@ npm run start:reset
 Your original `keys.js` had:
 ```javascript
 export const GEMINI_API_KEYS = [
-  "AQ.Ab8RN6JOLWjftWrX5vcWpuUxwMMeKqfcITNPTtMbrL25dlmIoQ",  // ❌ Invalid format
-  "AQ.Ab8RN6JbxRzFHiF6RnfnO2cyBSmiemnOT1cGkH2ILSJu3jei9w"   // ❌ Invalid format
+  "YOUR_GEMINI_API_KEY_HERE",   // ❌ Do not hardcode keys
+  "YOUR_SECOND_GEMINI_API_KEY_HERE"  // ❌ Use .env file instead
 ];
 ```
 

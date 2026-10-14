@@ -30,8 +30,8 @@ Removed the `GEMINI_API_KEY_3` declaration to match.
 ### 3. `mobile/.env`
 Already correct - only has 2 keys:
 ```env
-GEMINI_API_KEY=AQ.Ab8RN6JOLWjftWrX5vcWpuUxwMMeKqfcITNPTtMbrL25dlmIoQ
-GEMINI_API_KEY_2=AQ.Ab8RN6JbxRzFHiF6RnfnO2cyBSmiemnOT1cGkH2ILSJu3jei9w
+GEMINI_API_KEY=YOUR_GEMINI_API_KEY_HERE
+GEMINI_API_KEY_2=YOUR_SECOND_GEMINI_API_KEY_HERE
 ```
 
 ## Why 2 Keys is Good Enough

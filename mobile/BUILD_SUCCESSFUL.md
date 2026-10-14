@@ -59,8 +59,8 @@ You should now see:
 ## 🔑 Your Working API Keys
 
 ```env
-GEMINI_API_KEY=AQ.Ab8RN6JOLWjftWrX5vcWpuUxwMMeKqfcITNPTtMbrL25dlmIoQ
-GEMINI_API_KEY_2=AQ.Ab8RN6JbxRzFHiF6RnfnO2cyBSmiemnOT1cGkH2ILSJu3jei9w
+GEMINI_API_KEY=YOUR_GEMINI_API_KEY_HERE
+GEMINI_API_KEY_2=YOUR_SECOND_GEMINI_API_KEY_HERE
 ```
 
 Format: `AQ.Ab8RN6...` (valid alternative Gemini API key format)
