@@ -7,151 +7,33 @@
 
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- CURRENT PROBLEM
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Your current keys in mobile/.env are INVALID:
-
-❌ GEMINI_API_KEY=AQ.Ab8RN6JOLWjftWrX5vcWpuUxwMMeKqfcITNPTtMbrL25dlmIoQ
-❌ GEMINI_API_KEY_2=AQ.Ab8RN6JbxRzFHiF6RnfnO2cyBSmiemnOT1cGkH2ILSJu3jei9w
-
-These keys:
-- Start with "AQ.Ab8RN6..." ❌ WRONG FORMAT
-- Should start with "AIza" ✅ CORRECT FORMAT
-
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
  WHAT YOU NEED TO DO (3 STEPS)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 STEP 1: Get 2 real API keys from Google
 ────────────────────────────────────────
-
 1. Open: https://aistudio.google.com/app/apikey
-
 2. Sign in with Google
-
 3. Click "Create API Key" - TWO TIMES (to get 2 keys)
-
-4. Copy both keys - they should look like:
-   AIzaSyDh4qF5Xx-XxXxXxXxXxXxXxXxXxXxXxX
-   ^^^^^^ Notice it starts with "AIza"
-
+4. Copy both keys
 
 STEP 2: Edit mobile/.env file
 ──────────────────────────────
-
 1. Open: mobile/.env in any text editor
+2. Replace the placeholder values:
 
-2. Find these lines:
    GEMINI_API_KEY=YOUR_FIRST_API_KEY_HERE
    GEMINI_API_KEY_2=YOUR_SECOND_API_KEY_HERE
 
-3. Replace with your 2 real keys:
-
-   BEFORE:
-   ┌────────────────────────────────────────────────────┐
-   │ GEMINI_API_KEY=YOUR_FIRST_API_KEY_HERE            │
-   │ GEMINI_API_KEY_2=YOUR_SECOND_API_KEY_HERE         │
-   └────────────────────────────────────────────────────┘
-
-   AFTER:
-   ┌────────────────────────────────────────────────────┐
-   │ GEMINI_API_KEY=AIzaSyDh4qF5Xx-XxXxXxXxXxXxXxXxX   │
-   │ GEMINI_API_KEY_2=AIzaSyYYYYYYY-YyYyYyYyYyYyYyYyY  │
-   └────────────────────────────────────────────────────┘
-
-4. SAVE the file (Ctrl+S)
-
+3. Save the file (Ctrl+S)
 
 STEP 3: Test and rebuild
 ─────────────────────────
-
-Open terminal and run:
-
-┌────────────────────────────────────────────────────┐
-│ cd mobile                                          │
-│ npm run test:keys                                  │
-└────────────────────────────────────────────────────┘
-
-You should see:
-✅ Valid keys: 2/2
-🎉 All keys are valid!
-
-Then rebuild:
-┌────────────────────────────────────────────────────┐
-│ npm run build:clean                                │
-│ npm run build:apk                                  │
-│ npm run install:apk                                │
-└────────────────────────────────────────────────────┘
-
+  npm run test:keys
+  npm run build:apk
+  npm run install:apk
 
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- COPY-PASTE TEMPLATE
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Open mobile/.env and replace the Gemini section with this:
-
-# Gemini AI API Keys (paste your 2 keys here)
-GEMINI_API_KEY=AIzaSyXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-GEMINI_API_KEY_2=AIzaSyYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYYY
-
-Replace the XXX and YYY with your actual key characters.
-
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- WHY 2 KEYS IS GOOD
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Free tier limit: 15 requests per minute per key
-
-With 1 key:  15 requests/min
-With 2 keys: 30 requests/min  ← You have this! ✅
-With 3 keys: 45 requests/min
-
-2 keys is perfect for most use cases!
-
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- IMPORTANT NOTES
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-✅ DO:
-- Get keys from https://aistudio.google.com/app/apikey
-- Make sure keys start with "AIza"
-- Save the .env file after editing
-- Test with: npm run test:keys
-
-❌ DON'T:
-- Use keys that start with "AQ.Ab8RN6..." (these are invalid!)
-- Add quotes around the keys
-- Add spaces before/after the keys
-- Forget to save the file
-
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
- CHECKLIST
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-[ ] Opened https://aistudio.google.com/app/apikey
-[ ] Created 2 API keys
-[ ] Both keys start with "AIza"
-[ ] Opened mobile/.env in text editor
-[ ] Replaced YOUR_FIRST_API_KEY_HERE with first key
-[ ] Replaced YOUR_SECOND_API_KEY_HERE with second key
-[ ] Saved the file
-[ ] Ran: npm run test:keys
-[ ] Saw: ✅ Valid keys: 2/2
-[ ] Ran: npm run build:apk
-[ ] Installed APK on phone
-[ ] Tested Gemini features - they work! 🎉
-
-
-━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-
-Quick commands:
-  Test keys:  npm run test:keys
-  Build APK:  npm run build:apk
-  Install:    npm run install:apk
-
+ IMPORTANT: Never paste real API keys into this file!
+ Keep your keys only in mobile/.env (which is gitignored)
 ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
